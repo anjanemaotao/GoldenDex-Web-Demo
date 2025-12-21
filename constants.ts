@@ -15,8 +15,73 @@ export const CHART_DATA = Array.from({ length: 50 }, (_, i) => {
   };
 });
 
+export const MOCK_MARKETS: MarketData[] = [
+  {
+    symbol: 'XAUUSDC',
+    lastPrice: 2845.63,
+    markPrice: 2845.63,
+    indexPrice: 2845.63,
+    change24h: 34,
+    change24hPercent: 1.21,
+    high24h: 2854.63,
+    low24h: 2824.63,
+    volume24h: 234.32,
+    turnover24h: 13338233.34,
+    openInterest: 13338233.34,
+    fundingRate: 0.0034,
+    nextFundingTime: Date.now() + 1000 * 60 * 56,
+  },
+  {
+    symbol: 'XAGUSDC',
+    lastPrice: 32.45,
+    markPrice: 32.44,
+    indexPrice: 32.46,
+    change24h: -0.85,
+    change24hPercent: -2.55,
+    high24h: 33.50,
+    low24h: 31.80,
+    volume24h: 12450.00,
+    turnover24h: 404002.50,
+    openInterest: 500000,
+    fundingRate: 0.0120,
+    nextFundingTime: Date.now() + 1000 * 60 * 120,
+  },
+  {
+    symbol: 'BTCUSDC',
+    lastPrice: 65420.23,
+    markPrice: 65421.00,
+    indexPrice: 65419.50,
+    change24h: 1240.50,
+    change24hPercent: 1.93,
+    high24h: 66000.00,
+    low24h: 63800.00,
+    volume24h: 12.5,
+    turnover24h: 817750,
+    openInterest: 12000000,
+    fundingRate: 0.0050,
+    nextFundingTime: Date.now() + 1000 * 60 * 240,
+  },
+  {
+    symbol: 'ETHUSDC',
+    lastPrice: 3458.23,
+    markPrice: 3457.50,
+    indexPrice: 3459.00,
+    change24h: -262.34,
+    change24hPercent: -7.52,
+    high24h: 3750.00,
+    low24h: 3400.00,
+    volume24h: 852.1,
+    turnover24h: 2950000,
+    openInterest: 8500000,
+    fundingRate: -0.0012,
+    nextFundingTime: Date.now() + 1000 * 60 * 180,
+  }
+];
+
 export const TRANSLATIONS = {
   'en': {
+    search: 'Search',
+    marketName: 'Market',
     connectWallet: 'Connect Wallet',
     deposit: 'Deposit',
     withdraw: 'Withdraw',
@@ -36,6 +101,8 @@ export const TRANSLATIONS = {
     total: 'Total',
     buyLong: 'Buy / Long',
     sellShort: 'Sell / Short',
+    buySide: 'Buy',
+    sellSide: 'Sell',
     avail: 'Avail',
     market: 'Market',
     limit: 'Limit',
@@ -71,7 +138,7 @@ export const TRANSLATIONS = {
     unrealized: 'Unrealized PnL',
     usdcMargin: 'USDC Margin',
     marginRatio: 'Margin Ratio',
-    maintMargin: 'Maint. Margin',
+    maintMargin: 'Maintenance Margin',
     marginBalance: 'Margin Balance',
     selectWallet: 'Select Wallet',
     signToLogin: 'Sign to Login',
@@ -170,6 +237,8 @@ export const TRANSLATIONS = {
     }
   },
   'zh-CN': {
+    search: '搜索',
+    marketName: '合约',
     connectWallet: '连接钱包',
     deposit: '充值',
     withdraw: '提现',
@@ -189,6 +258,8 @@ export const TRANSLATIONS = {
     total: '总额',
     buyLong: '买入 / 做多',
     sellShort: '卖出 / 做空',
+    buySide: '买入',
+    sellSide: '卖出',
     avail: '可用',
     market: '市价',
     limit: '限价',
@@ -323,6 +394,8 @@ export const TRANSLATIONS = {
     }
   },
   'zh-TW': {
+    search: '搜索',
+    marketName: '合約',
     connectWallet: '連接錢包',
     deposit: '充值',
     withdraw: '提現',
@@ -342,6 +415,8 @@ export const TRANSLATIONS = {
     total: '總額',
     buyLong: '買入 / 做多',
     sellShort: '賣出 / 做空',
+    buySide: '買入',
+    sellSide: '賣出',
     avail: '可用',
     market: '市價',
     limit: '限價',
@@ -461,37 +536,23 @@ export const TRANSLATIONS = {
       fundingRate: '資金費率旨在使永續合約價格錨定現貨價格，通過多空雙方互相支付費用來實現。',
       change24h: '過去 24 小時內價格的漲跌絕對值以及漲跌百分比。',
       highLow24h: '過去 24 小時內的最高成交價和最低成交價。',
-      volume24h: '過去 24 小時內成交的總合約數量和對應的名義價值（USDC）。',
+      volume24h: '過去 24 小时内成交的总合約數量和對應的名義價值（USDC）。',
       openInterest: '當前市場上所有未平倉的合約總持倉量名義價值。',
-      totalValue: '持倉總價值是您賬戶中所有資產的總和，包含錢包餘額和當前所有未實現盈虧。',
+      totalValue: '持倉總價值是您賬戶中所有資产的總和，包含錢包餘額和當前所有未實現盈亏。',
       unrealized: '未實現盈虧是基於標記價格計算的當前所有持倉的浮動盈利或虧損。',
       marginRatio: '保證金比率 = (維持保證金 / 保證金餘額) * 100%。當該比例達到 100% 時，將觸發強制平倉。',
       maintMargin: '維持當前倉位所需的最低保證金金額。',
       marginBalance: '賬戶中可用於支持倉位的總權益（賬戶餘額 + 未實現盈虧）。',
-      nominalValue: '名義價值 = 持倉量 * 標記價格，代表了當前倉位的總市場敞口。',
+      nominalValue: '名義價值 = 持仓量 * 標記價格，代表了當前倉位的總市場敞口。',
       entryPrice: '該倉位開倉時的加權平均價格。',
-      liqPrice: '當標記價格觸及此價格時，該倉位將被系統強制接管並平倉。',
+      liqPrice: '當標記價格觸及此價格時，該倉位將被系統強制接管並平仓。',
       margin: '當前倉位鎖定的本金部分，用於承擔潛在虧損。',
       unrealizedPnl: '當前持倉的浮動盈利或虧損，以及對應本金的回報率（ROI）。'
     }
   }
 };
 
-export const INITIAL_MARKET_DATA: MarketData = {
-  symbol: 'XAUUSDC',
-  lastPrice: 2845.63,
-  markPrice: 2845.63,
-  indexPrice: 2845.63,
-  change24h: 34,
-  change24hPercent: 1.21,
-  high24h: 2854.63,
-  low24h: 2824.63,
-  volume24h: 234.32,
-  turnover24h: 13338233.34,
-  openInterest: 13338233.34,
-  fundingRate: 0.0034,
-  nextFundingTime: Date.now() + 1000 * 60 * 56, // 56 mins
-};
+export const INITIAL_MARKET_DATA: MarketData = MOCK_MARKETS[0];
 
 export const MOCK_POSITIONS: Position[] = [
   {
@@ -507,45 +568,116 @@ export const MOCK_POSITIONS: Position[] = [
     pnl: 2234.23,
     pnlPercent: 15.23,
     liquidationPrice: 2154.58
+  },
+  {
+    id: '2',
+    symbol: 'BTCUSDC',
+    side: OrderSide.SELL,
+    size: 0.05,
+    entryPrice: 65120.50,
+    markPrice: 65420.23,
+    leverage: 10,
+    margin: 325.60,
+    marginMode: MarginMode.CROSS,
+    pnl: -14.98,
+    pnlPercent: -4.60,
+    liquidationPrice: 71200.00
+  },
+  {
+    id: '3',
+    symbol: 'ETHUSDC',
+    side: OrderSide.BUY,
+    size: 2.5,
+    entryPrice: 3500.00,
+    markPrice: 3458.23,
+    leverage: 5,
+    margin: 1750.00,
+    marginMode: MarginMode.ISOLATED,
+    pnl: -104.42,
+    pnlPercent: -5.97,
+    liquidationPrice: 2800.00
+  },
+  {
+    id: '4',
+    symbol: 'XAGUSDC',
+    side: OrderSide.BUY,
+    size: 500,
+    entryPrice: 31.50,
+    markPrice: 32.45,
+    leverage: 20,
+    margin: 787.50,
+    marginMode: MarginMode.ISOLATED,
+    pnl: 475.00,
+    pnlPercent: 60.32,
+    liquidationPrice: 30.00
+  },
+  {
+    id: '5',
+    symbol: 'XAUUSDC',
+    side: OrderSide.SELL,
+    size: 0.8,
+    entryPrice: 2860.00,
+    markPrice: 2845.63,
+    leverage: 10,
+    margin: 228.80,
+    marginMode: MarginMode.CROSS,
+    pnl: 11.50,
+    pnlPercent: 5.02,
+    liquidationPrice: 3100.00
   }
 ];
 
-export const MOCK_FUNDING_RECORDS = [
-  { id: '1', time: '2024-03-20 14:00:00', type: 'tradingFee', amount: -0.52, symbol: 'XAUUSDC' },
-  { id: '2', time: '2024-03-20 12:00:00', type: 'fundingFee', amount: 1.25, symbol: 'XAUUSDC' },
-  { id: '3', time: '2024-03-20 10:00:00', type: 'realizedPnl', amount: 154.20, symbol: 'XAUUSDC' },
-  { id: '4', time: '2024-03-19 22:00:00', type: 'tradingFee', amount: -0.48, symbol: 'XAUUSDC' },
-  { id: '5', time: '2024-03-19 16:00:00', type: 'liquidationFee', amount: -12.00, symbol: 'XAUUSDC' },
-];
+export const MOCK_FUNDING_RECORDS = Array.from({ length: 60 }, (_, i) => ({
+  id: `f-${i}`,
+  time: new Date(Date.now() - i * 3600000 * 4).toISOString().replace('T', ' ').slice(0, 19),
+  type: i % 4 === 0 ? 'fundingFee' : (i % 3 === 0 ? 'tradingFee' : 'realizedPnl'),
+  amount: (Math.random() - 0.2) * 120,
+  symbol: i % 2 === 0 ? 'XAUUSDC' : 'BTCUSDC'
+}));
 
-export const MOCK_HISTORY_ORDERS = [
-  { id: 'h1', symbol: 'XAUUSDC', side: 'BUY', type: 'LIMIT', price: 2820.50, filled: 1.5, total: 1.5, status: 'filledOrder', time: '2024-03-20 13:45:12' },
-  { id: 'h2', symbol: 'XAUUSDC', side: 'SELL', type: 'LIMIT', price: 2850.00, filled: 0.5, total: 1.0, status: 'partialFilled', time: '2024-03-20 12:30:05' },
-  { id: 'h3', symbol: 'XAUUSDC', side: 'BUY', type: 'LIMIT', price: 2800.00, filled: 0, total: 2.0, status: 'canceled', time: '2024-03-20 11:15:40' },
-  { id: 'h4', symbol: 'XAUUSDC', side: 'SELL', type: 'MARKET', price: 2840.20, filled: 0, total: 0.5, status: 'expired', time: '2024-03-20 10:00:00' },
-];
+export const MOCK_HISTORY_ORDERS = Array.from({ length: 80 }, (_, i) => ({
+  id: `h-${i}`,
+  symbol: i % 3 === 0 ? 'BTCUSDC' : (i % 2 === 0 ? 'XAUUSDC' : 'ETHUSDC'),
+  side: i % 2 === 0 ? 'BUY' : 'SELL',
+  type: i % 4 === 0 ? 'MARKET' : 'LIMIT',
+  price: 2820.50 + i * 2.5,
+  filled: 1.5,
+  total: 1.5,
+  leverage: Math.floor(Math.random() * 20) + 1,
+  status: i % 7 === 0 ? 'canceled' : 'filledOrder',
+  time: new Date(Date.now() - i * 900000).toISOString().replace('T', ' ').slice(0, 19)
+}));
 
-export const MOCK_TRADE_HISTORY = [
-  { id: 't1', symbol: 'XAUUSDC', side: 'BUY', price: 2845.10, amount: 0.8, total: 2276.08, fee: 1.13, pnl: 45.20, time: '2024-03-20 14:10:22' },
-  { id: 't2', symbol: 'XAUUSDC', side: 'BUY', price: 2845.05, amount: 0.4, total: 1138.02, fee: 0.57, pnl: 22.10, time: '2024-03-20 14:10:22' },
-  { id: 't3', symbol: 'XAUUSDC', side: 'SELL', price: 2838.40, amount: 1.2, total: 3406.08, fee: 1.70, pnl: -12.40, time: '2024-03-20 09:20:15' },
-];
+export const MOCK_TRADE_HISTORY = Array.from({ length: 100 }, (_, i) => ({
+  id: `t-${i}`,
+  symbol: i % 2 === 0 ? 'XAUUSDC' : (i % 3 === 0 ? 'BTCUSDC' : 'XAGUSDC'),
+  side: i % 2 === 0 ? 'BUY' : 'SELL',
+  price: 2845.10 + i * 0.5,
+  amount: 0.5 + i * 0.05,
+  total: (2845.10 + i * 0.5) * (0.5 + i * 0.05),
+  fee: (2845.10 + i * 0.5) * (0.5 + i * 0.05) * 0.0005,
+  pnl: (Math.random() - 0.4) * 200,
+  time: new Date(Date.now() - i * 300000).toISOString().replace('T', ' ').slice(0, 19)
+}));
 
-export const MOCK_ASSETS_HISTORY = [
-  { id: 'a1', asset: 'USDC', type: 'deposit', amount: 5000, fee: null, hash: '0x7b...3f2a', status: 'completed', time: '2024-03-20 08:00:00' },
-  { id: 'a2', asset: 'USDC', type: 'withdraw', amount: 1000, fee: 0.5, hash: '0xa4...1d9e', status: 'processing', time: '2024-03-20 15:20:00' },
-  { id: 'a3', asset: 'USDC', type: 'deposit', amount: 200, fee: null, hash: '0x1c...9b8c', status: 'confirming', time: '2024-03-20 16:45:00' },
-  { id: 'a4', asset: 'USDC', type: 'withdraw', amount: 500, fee: 0.5, hash: '0xf2...e4a1', status: 'reviewing', time: '2024-03-19 14:00:00' },
-  { id: 'a5', asset: 'USDC', type: 'withdraw', amount: 2000, fee: 0.5, hash: '0x8d...c3b2', status: 'rejected', time: '2024-03-18 10:30:00' },
-];
+export const MOCK_ASSETS_HISTORY = Array.from({ length: 45 }, (_, i) => ({
+  id: `a-${i}`,
+  asset: 'USDC',
+  type: i % 3 === 0 ? 'withdraw' : 'deposit',
+  amount: (Math.random() * 15000 + 500),
+  fee: i % 3 === 0 ? 0.5 : null,
+  hash: '0x' + Math.random().toString(16).slice(2, 14) + '...',
+  status: i === 0 ? 'processing' : 'completed',
+  time: new Date(Date.now() - i * 43200000).toISOString().replace('T', ' ').slice(0, 19)
+}));
 
-export const MOCK_ASKS = Array.from({ length: 8 }, (_, i) => ({
+export const MOCK_ASKS = Array.from({ length: 20 }, (_, i) => ({
   price: 2846.60 + (i * 0.4),
   amount: (Math.random() * 20).toFixed(3),
   total: (Math.random() * 50).toFixed(3)
 })).reverse();
 
-export const MOCK_BIDS = Array.from({ length: 8 }, (_, i) => ({
+export const MOCK_BIDS = Array.from({ length: 20 }, (_, i) => ({
   price: 2844.45 - (i * 0.4),
   amount: (Math.random() * 20).toFixed(3),
   total: (Math.random() * 50).toFixed(3)

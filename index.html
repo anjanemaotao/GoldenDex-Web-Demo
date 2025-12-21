@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en" class="dark">
   <head>
@@ -45,10 +44,35 @@
       }
     </script>
     <style>
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      /* Base Scrollbar Styling */
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-      body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      ::-webkit-scrollbar-thumb { 
+        background: #334155; 
+        border-radius: 10px; 
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+      ::-webkit-scrollbar-thumb:hover { background: #475569; background-clip: content-box; }
+
+      .dark ::-webkit-scrollbar-thumb { background: #475569; }
+      .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+      /* Custom scrollbar for data tables */
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { 
+        background: #EAB30880; 
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #EAB308; }
+
+      body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
+      
+      /* Ensure sticky works with overflow containers */
+      .sticky { position: -webkit-sticky; position: sticky; }
     </style>
   <script type="importmap">
 {
@@ -64,6 +88,5 @@
 </head>
   <body class="bg-gray-50 dark:bg-dark-bg text-slate-900 dark:text-slate-200 transition-colors duration-200">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

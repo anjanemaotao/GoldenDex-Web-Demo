@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MOCK_ASKS, MOCK_BIDS, TRANSLATIONS, INITIAL_MARKET_DATA } from '../constants';
 import { Language } from '../types';
@@ -15,7 +14,7 @@ const Row = ({ price, amount, total, type }: { price: number, amount: string, to
   const width = Math.min(parseFloat(total) * 1, 100); 
 
   return (
-    <div className="grid grid-cols-3 text-xs py-1 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors relative group items-center">
+    <div className="grid grid-cols-3 text-[11px] py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors relative group items-center">
       <div 
         className={`absolute top-0 right-0 h-full opacity-10 transition-all duration-300 ${bgClass}`} 
         style={{ width: `${width}%` }} 
@@ -37,8 +36,8 @@ export const OrderBook: React.FC<OrderBookProps> = ({ lang, lastPrice: initialLa
 
   // Simulation effect for Order Book and Trades
   useEffect(() => {
-    // Initial trades
-    const initialTrades = Array.from({ length: 15 }, (_, i) => ({
+    // 调整为 19 行以匹配：9档卖盘 + 1行中间价 + 9档买盘
+    const initialTrades = Array.from({ length: 19 }, (_, i) => ({
       id: `initial-${i}`,
       price: initialLastPrice + (Math.random() - 0.5) * 5,
       amount: (Math.random() * 2).toFixed(3),
@@ -75,7 +74,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ lang, lastPrice: initialLa
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
           side
         };
-        setTrades(prev => [newTrade, ...prev].slice(0, 20));
+        setTrades(prev => [newTrade, ...prev].slice(0, 19));
       }
     }, 1000);
 
@@ -87,19 +86,19 @@ export const OrderBook: React.FC<OrderBookProps> = ({ lang, lastPrice: initialLa
       <div className="flex border-b border-gray-200 dark:border-dark-border shrink-0">
         <button 
           onClick={() => setTab('book')}
-          className={`flex-1 py-2 text-sm font-medium transition-colors ${tab === 'book' ? 'text-brand-500 border-b-2 border-brand-500' : 'text-gray-500'}`}
+          className={`flex-1 py-1.5 text-xs font-bold transition-colors ${tab === 'book' ? 'text-brand-500 border-b-2 border-brand-500' : 'text-gray-500'}`}
         >
           {t.orderBook}
         </button>
         <button 
           onClick={() => setTab('trades')}
-          className={`flex-1 py-2 text-sm font-medium transition-colors ${tab === 'trades' ? 'text-brand-500 border-b-2 border-brand-500' : 'text-gray-500'}`}
+          className={`flex-1 py-1.5 text-xs font-bold transition-colors ${tab === 'trades' ? 'text-brand-500 border-b-2 border-brand-500' : 'text-gray-500'}`}
         >
           {t.recentTrades}
         </button>
       </div>
 
-      <div className="grid grid-cols-3 text-[10px] text-gray-500 dark:text-gray-400 px-2 py-2 font-semibold shrink-0 uppercase tracking-tighter">
+      <div className="grid grid-cols-3 text-[9px] text-gray-500 dark:text-gray-400 px-2 py-1 font-semibold shrink-0 uppercase tracking-tighter">
         <div className="text-left">{t.price}</div>
         <div className="text-right">{t.amount}</div>
         <div className="text-right pr-2">{tab === 'book' ? t.total : t.time}</div>
@@ -109,21 +108,23 @@ export const OrderBook: React.FC<OrderBookProps> = ({ lang, lastPrice: initialLa
         {tab === 'book' ? (
           <div className="flex-1 flex flex-col justify-between overflow-hidden">
             <div className="flex flex-col justify-end overflow-hidden">
-              {asks.slice(0, 12).map((ask, i) => (
+              {/* 增加至 9 档 */}
+              {asks.slice(0, 9).map((ask, i) => (
                 <Row key={`ask-${i}`} {...ask} price={ask.price} type="ask" />
               ))}
             </div>
             
-            <div className="py-2 my-1 border-y border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/40 shrink-0 flex items-center justify-center space-x-4">
+            <div className="py-1 my-0.5 border-y border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/40 shrink-0 flex items-center justify-center space-x-3">
                <div className="flex items-center space-x-1">
-                 <span className={`text-xl font-bold font-mono ${lastPrice >= initialLastPrice ? 'text-trade-up' : 'text-trade-down'}`}>{lastPrice.toFixed(2)}</span>
-                 {lastPrice >= initialLastPrice ? <ArrowUp size={16} className="text-trade-up" /> : <ArrowDown size={16} className="text-trade-down" />}
+                 <span className={`text-base font-bold font-mono ${lastPrice >= initialLastPrice ? 'text-trade-up' : 'text-trade-down'}`}>{lastPrice.toFixed(2)}</span>
+                 {lastPrice >= initialLastPrice ? <ArrowUp size={12} className="text-trade-up" /> : <ArrowDown size={12} className="text-trade-down" />}
                </div>
-               <div className="text-[11px] text-slate-500 font-mono mt-0.5">{INITIAL_MARKET_DATA.markPrice.toFixed(2)}</div>
+               <div className="text-[10px] text-slate-500 font-mono">{INITIAL_MARKET_DATA.markPrice.toFixed(2)}</div>
             </div>
 
             <div className="overflow-hidden">
-               {bids.slice(0, 12).map((bid, i) => (
+               {/* 增加至 9 档 */}
+               {bids.slice(0, 9).map((bid, i) => (
                 <Row key={`bid-${i}`} {...bid} price={bid.price} type="bid" />
               ))}
             </div>
@@ -131,7 +132,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ lang, lastPrice: initialLa
         ) : (
           <div className="flex-1 overflow-y-auto hide-scrollbar">
              {trades.map((trade) => (
-               <div key={trade.id} className="grid grid-cols-3 text-xs py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors px-2">
+               <div key={trade.id} className="grid grid-cols-3 text-[11px] py-1 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors px-2">
                  <div className={`text-left font-mono font-bold ${trade.side === 'BUY' ? 'text-trade-up' : 'text-trade-down'}`}>
                    {trade.price.toFixed(2)}
                  </div>

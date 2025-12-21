@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { CHART_DATA, MOCK_ASKS, MOCK_BIDS, TRANSLATIONS, TIMEFRAMES } from '../constants';
-import { Language } from '../types';
+import { Language, MarketData } from '../types';
 import { ChevronDown, LineChart as LineIcon, BarChart2, Layers } from 'lucide-react';
 
 type ChartType = 'line' | 'candle' | 'depth';
@@ -10,6 +10,7 @@ type PriceSourceKey = 'lastPrice' | 'markPrice' | 'indexPrice';
 
 interface CandleChartProps {
   lang: Language;
+  currentMarket: MarketData;
 }
 
 const CandleStickShape = (props: any) => {
@@ -39,7 +40,7 @@ const CandleStickShape = (props: any) => {
   );
 };
 
-export const CandleChart: React.FC<CandleChartProps> = ({ lang }) => {
+export const CandleChart: React.FC<CandleChartProps> = ({ lang, currentMarket }) => {
   const t = TRANSLATIONS[lang];
   const [chartType, setChartType] = useState<ChartType>('candle');
   const [timeframe, setTimeframe] = useState('15m');
@@ -47,40 +48,72 @@ export const CandleChart: React.FC<CandleChartProps> = ({ lang }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Dynamic Data Simulation
-  const [liveData, setLiveData] = useState(CHART_DATA);
+  // Initialize data with consistent historical prices
+  const initialData = useMemo(() => {
+    let basePrice = currentMarket.lastPrice;
+    return Array.from({ length: 60 }, (_, i) => {
+      const open = basePrice + (Math.random() - 0.5) * 10;
+      const close = open + (Math.random() - 0.5) * 8;
+      const high = Math.max(open, close) + Math.random() * 4;
+      const low = Math.min(open, close) - Math.random() * 4;
+      basePrice = close;
+      return { time: i, open, close, high, low };
+    });
+  }, [currentMarket.symbol]);
+
+  const [liveData, setLiveData] = useState(initialData);
   const [liveAsks, setLiveAsks] = useState(MOCK_ASKS);
   const [liveBids, setLiveBids] = useState(MOCK_BIDS);
+  
+  // Track ticks to simulate timeframe completion
+  const tickCountRef = useRef(0);
+  const TICKS_PER_CANDLE = 10; // New candle every ~5 seconds
 
   useEffect(() => {
     const interval = setInterval(() => {
       setLiveData(prev => {
-        const last = prev[prev.length - 1];
-        const change = (Math.random() - 0.5) * 5;
-        const newClose = last.close + change;
-        const newOpen = last.close;
-        const newHigh = Math.max(newOpen, newClose) + Math.random() * 2;
-        const newLow = Math.min(newOpen, newClose) - Math.random() * 2;
+        const newData = [...prev];
+        const lastIdx = newData.length - 1;
+        const lastCandle = { ...newData[lastIdx] };
         
-        return [...prev.slice(1), {
-          ...last,
-          time: last.time + 1,
-          open: newOpen,
-          close: newClose,
-          high: newHigh,
-          low: newLow
-        }];
+        // Random walk for price movement
+        const volatility = 1.5;
+        const drift = (initialData[0].open - lastCandle.close) * 0.01; // Slight pull towards initial price to prevent infinite drift
+        const change = (Math.random() - 0.5) * volatility + drift;
+        const newPrice = lastCandle.close + change;
+
+        tickCountRef.current += 1;
+
+        if (tickCountRef.current >= TICKS_PER_CANDLE) {
+          // Finalize current candle and start a new one
+          tickCountRef.current = 0;
+          const nextCandle = {
+            time: lastCandle.time + 1,
+            open: lastCandle.close,
+            close: newPrice,
+            high: Math.max(lastCandle.close, newPrice),
+            low: Math.min(lastCandle.close, newPrice)
+          };
+          return [...newData.slice(1), nextCandle];
+        } else {
+          // Update the current candle (real-time tick)
+          lastCandle.close = newPrice;
+          lastCandle.high = Math.max(lastCandle.high, newPrice);
+          lastCandle.low = Math.min(lastCandle.low, newPrice);
+          newData[lastIdx] = lastCandle;
+          return newData;
+        }
       });
 
-      // Simulating depth updates
-      setLiveAsks(prev => prev.map(a => ({ ...a, amount: (parseFloat(a.amount) + (Math.random() - 0.5)).toFixed(3) })));
-      setLiveBids(prev => prev.map(b => ({ ...b, amount: (parseFloat(b.amount) + (Math.random() - 0.5)).toFixed(3) })));
+      // Update depth slightly for visual "noise"
+      setLiveAsks(prev => prev.map(a => ({ ...a, amount: Math.max(0.1, (parseFloat(a.amount) + (Math.random() - 0.5))).toFixed(3) })));
+      setLiveBids(prev => prev.map(b => ({ ...b, amount: Math.max(0.1, (parseFloat(b.amount) + (Math.random() - 0.5))).toFixed(3) })));
 
-    }, 2000);
+    }, 500); // 500ms ticks for smoothness
+    
     return () => clearInterval(interval);
-  }, []);
+  }, [initialData]);
 
-  // Handle outside click for dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -119,8 +152,9 @@ export const CandleChart: React.FC<CandleChartProps> = ({ lang }) => {
     } else {
         return liveData.map(d => {
             let val = d.close;
-            if (priceSourceKey === 'markPrice') val = d.close * 1.0005;
-            if (priceSourceKey === 'indexPrice') val = d.close * 0.9995;
+            // Simulated offset for Mark/Index price sources
+            if (priceSourceKey === 'markPrice') val = d.close * 1.0002;
+            if (priceSourceKey === 'indexPrice') val = d.close * 0.9998;
             return {
                 ...d,
                 displayPrice: val,
@@ -132,7 +166,7 @@ export const CandleChart: React.FC<CandleChartProps> = ({ lang }) => {
 
   return (
     <div className="w-full h-full flex flex-col bg-white dark:bg-dark-bg relative">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-slate-800">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-slate-800 z-10 bg-white dark:bg-dark-bg">
          <div className="flex space-x-1 overflow-x-auto hide-scrollbar mr-2">
            {TIMEFRAMES.map(tf => (
              <button
@@ -192,50 +226,50 @@ export const CandleChart: React.FC<CandleChartProps> = ({ lang }) => {
          </div>
       </div>
       
-      <div className="flex-1 w-full relative">
+      <div className="flex-1 w-full relative overflow-hidden">
         <ResponsiveContainer width="100%" height="100%">
           {chartType === 'line' ? (
-              <AreaChart data={displayData}>
+              <AreaChart data={displayData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#EAB308" stopOpacity={0.3}/>
                     <stop offset="95%" stopColor="#EAB308" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.1} vertical={false} />
                 <XAxis dataKey="time" hide />
-                <YAxis orientation="right" domain={['auto', 'auto']} tick={{fill: '#94a3b8', fontSize: 11}} axisLine={false} tickLine={false} width={50} />
+                <YAxis orientation="right" domain={['auto', 'auto']} tick={{fill: '#94a3b8', fontSize: 10}} axisLine={false} tickLine={false} width={50} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#1E293B', borderColor: '#334155', color: '#f1f5f9' }}
                   itemStyle={{ color: '#EAB308' }}
                   formatter={(value: number) => [value.toFixed(2), t[priceSourceKey]]}
                   labelFormatter={() => ''}
                 />
-                <Area type="monotone" dataKey="displayPrice" stroke="#EAB308" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice)" isAnimationActive={true} animationDuration={500} />
+                <Area type="monotone" dataKey="displayPrice" stroke="#EAB308" strokeWidth={2} fillOpacity={1} fill="url(#colorPrice)" isAnimationActive={false} />
               </AreaChart>
           ) : chartType === 'candle' ? (
-              <BarChart data={displayData}>
-                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} vertical={false} />
+              <BarChart data={displayData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.1} vertical={false} />
                  <XAxis dataKey="time" hide />
-                 <YAxis orientation="right" domain={['dataMin - 5', 'dataMax + 5']} tick={{fill: '#94a3b8', fontSize: 11}} axisLine={false} tickLine={false} width={50} />
-                 <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
-                 <Bar dataKey="body" shape={<CandleStickShape />} isAnimationActive={true} animationDuration={500} />
+                 <YAxis orientation="right" domain={['dataMin - 5', 'dataMax + 5']} tick={{fill: '#94a3b8', fontSize: 10}} axisLine={false} tickLine={false} width={50} />
+                 <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} content={<CustomTooltip />} />
+                 <Bar dataKey="body" shape={<CandleStickShape />} isAnimationActive={false} />
               </BarChart>
           ) : (
-              <AreaChart data={displayData}>
-                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} vertical={false} />
-                 <XAxis dataKey="price" type="number" domain={['auto', 'auto']} tick={{fill: '#94a3b8', fontSize: 11}} axisLine={false} tickLine={false} tickCount={6} />
-                 <YAxis orientation="right" tick={{fill: '#94a3b8', fontSize: 11}} axisLine={false} tickLine={false} width={50} />
+              <AreaChart data={displayData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.1} vertical={false} />
+                 <XAxis dataKey="price" type="number" domain={['auto', 'auto']} tick={{fill: '#94a3b8', fontSize: 10}} axisLine={false} tickLine={false} tickCount={6} />
+                 <YAxis orientation="right" tick={{fill: '#94a3b8', fontSize: 10}} axisLine={false} tickLine={false} width={50} />
                  <Tooltip contentStyle={{ backgroundColor: '#1E293B', borderColor: '#334155', color: '#f1f5f9' }} />
-                 <Area type="step" dataKey="bidTotal" stroke="#10B981" fill="#10B981" fillOpacity={0.3} strokeWidth={2} name="Bid Depth" isAnimationActive={true} animationDuration={500} />
-                 <Area type="step" dataKey="askTotal" stroke="#F43F5E" fill="#F43F5E" fillOpacity={0.3} strokeWidth={2} name="Ask Depth" isAnimationActive={true} animationDuration={500} />
+                 <Area type="step" dataKey="bidTotal" stroke="#10B981" fill="#10B981" fillOpacity={0.3} strokeWidth={2} name="Bid Depth" isAnimationActive={false} />
+                 <Area type="step" dataKey="askTotal" stroke="#F43F5E" fill="#F43F5E" fillOpacity={0.3} strokeWidth={2} name="Ask Depth" isAnimationActive={false} />
               </AreaChart>
           )}
         </ResponsiveContainer>
       </div>
       
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-[0.03]">
-         <div className="text-8xl font-bold text-slate-900 dark:text-white">GOLD</div>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-[0.03] select-none">
+         <div className="text-8xl font-black text-slate-900 dark:text-white uppercase">{currentMarket.symbol.replace('USDC', '')}</div>
       </div>
     </div>
   );
@@ -245,13 +279,12 @@ const CustomTooltip = ({ active, payload }: any) => {
    if (active && payload && payload.length) {
        const d = payload[0].payload;
        return (
-           <div className="bg-dark-card border border-dark-border p-2 rounded shadow-lg text-xs">
-               <div className="text-gray-400 mb-1">Time: {d.time}</div>
-               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                   <span className="text-gray-400">O:</span> <span className={d.open < d.close ? 'text-trade-up' : 'text-trade-down'}>{d.open.toFixed(2)}</span>
+           <div className="bg-dark-card border border-dark-border p-2 rounded shadow-lg text-[10px] font-mono">
+               <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                   <span className="text-gray-400">O:</span> <span className="text-slate-200">{d.open.toFixed(2)}</span>
                    <span className="text-gray-400">H:</span> <span className="text-slate-200">{d.high.toFixed(2)}</span>
                    <span className="text-gray-400">L:</span> <span className="text-slate-200">{d.low.toFixed(2)}</span>
-                   <span className="text-gray-400">C:</span> <span className={d.open < d.close ? 'text-trade-up' : 'text-trade-down'}>{d.close.toFixed(2)}</span>
+                   <span className="text-gray-400">C:</span> <span className={d.open <= d.close ? 'text-trade-up' : 'text-trade-down'}>{d.close.toFixed(2)}</span>
                </div>
            </div>
        );

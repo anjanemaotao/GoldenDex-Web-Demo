@@ -21,7 +21,7 @@ interface PositionTableProps {
 const ThWithTooltip: React.FC<{ label: string; explanation?: string; align?: 'left' | 'right' }> = ({ label, explanation, align = 'left' }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   return (
-    <th className={`py-1.5 px-4 font-semibold text-gray-500 uppercase relative ${align === 'right' ? 'text-right' : 'text-left'}`}>
+    <th className={`py-2 px-4 font-semibold text-gray-500 uppercase relative ${align === 'right' ? 'text-right' : 'text-left'}`}>
       <div 
         className={`inline-flex items-center space-x-1 cursor-help border-b border-dashed border-gray-300 dark:border-slate-700 transition-colors hover:border-brand-500 ${align === 'right' ? 'justify-end' : ''}`}
         onMouseEnter={() => setShowTooltip(true)}
@@ -30,7 +30,7 @@ const ThWithTooltip: React.FC<{ label: string; explanation?: string; align?: 'le
         <span>{label}</span>
       </div>
       {showTooltip && explanation && (
-        <div className={`absolute top-8 ${align === 'right' ? 'right-4' : 'left-4'} z-[2000] w-64 p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-2xl text-xs text-gray-600 dark:text-gray-300 leading-relaxed normal-case animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/5`}>
+        <div className={`absolute top-full mb-2 ${align === 'right' ? 'right-0' : 'left-0'} z-[2000] w-64 p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-2xl text-xs text-gray-600 dark:text-gray-300 leading-relaxed normal-case animate-in fade-in zoom-in-95 duration-100 ring-1 ring-black/5`}>
           <div className="font-bold text-slate-900 dark:text-white mb-1 flex items-center space-x-1">
             <Info size={12} className="text-brand-500" />
             <span>{label}</span>
@@ -49,34 +49,14 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
   const [fundingFilter, setFundingFilter] = useState('all');
   const [showCloseAllModal, setShowCloseAllModal] = useState(false);
 
-  // Dynamic Recent Trades
-  const [recentTrades, setRecentTrades] = useState<any[]>([]);
+  // Dynamic Recent Trades for History
+  const [allTrades, setAllTrades] = useState<any[]>([]);
 
   useEffect(() => {
-    // Initialize with mock
-    setRecentTrades(MOCK_TRADE_HISTORY);
-    
-    const interval = setInterval(() => {
-      const side = Math.random() > 0.5 ? 'BUY' : 'SELL';
-      const newTrade = {
-        id: Date.now().toString(),
-        symbol: 'XAUUSDC',
-        side,
-        price: 2840 + Math.random() * 10,
-        amount: Math.random() * 5,
-        total: (2840 + Math.random() * 10) * (Math.random() * 5),
-        fee: Math.random() * 2,
-        pnl: (Math.random() - 0.5) * 50,
-        time: new Date().toISOString().slice(11, 19)
-      };
-      setRecentTrades(prev => [newTrade, ...prev.slice(0, 19)]);
-    }, 3000);
-    
-    return () => clearInterval(interval);
+    setAllTrades(MOCK_TRADE_HISTORY);
   }, []);
 
   const getTabLabel = (tabId: string) => {
-    // Cast to any to avoid TS error with nested translation objects when indexing with dynamic keys
     const label = (t as any)[tabId] || tabId;
     if (tabId === 'positions') return `${label}(${positions.length})`;
     if (tabId === 'openOrders') return `${label}(${orders.length})`;
@@ -88,6 +68,8 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
       case 'completed': return 'text-teal-500 bg-teal-500/10';
       case 'processing': case 'confirming': case 'reviewing': return 'text-amber-500 bg-amber-500/10';
       case 'rejected': case 'failed': return 'text-rose-500 bg-rose-500/10';
+      case 'canceled': return 'text-gray-400 bg-gray-100 dark:bg-slate-800';
+      case 'filledOrder': return 'text-brand-500 bg-brand-500/10';
       default: return 'text-gray-500 bg-gray-500/10';
     }
   };
@@ -187,7 +169,8 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-dark-card border-t border-gray-200 dark:border-dark-border overflow-hidden">
-      <div className="flex items-center px-4 border-b border-gray-200 dark:border-dark-border shrink-0 overflow-x-auto hide-scrollbar z-20">
+      {/* 选项卡头部 - 固定不滚动 */}
+      <div className="flex items-center px-4 border-b border-gray-200 dark:border-dark-border shrink-0 bg-white dark:bg-dark-card z-30 overflow-x-auto hide-scrollbar">
         {['positions', 'openOrders', 'orderHistory', 'tradeHistory', 'assetsHistory', 'fundingHistory'].map(tabId => (
           <button 
             key={tabId} 
@@ -215,40 +198,44 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
         )}
       </div>
 
-      <div className="flex-1 overflow-auto">
+      {/* 数据内容滚动区 */}
+      <div className="flex-1 overflow-auto relative scroll-smooth custom-scrollbar">
         {activeTab === 'positions' ? (
           <table className="w-full text-left text-xs border-collapse min-w-[1000px]">
-            <thead className="sticky top-0 bg-white dark:bg-dark-card z-10 shadow-sm">
-              <tr className="text-gray-500 uppercase border-b border-gray-200 dark:border-slate-800">
-                <th className="py-1.5 px-4 font-semibold">{t.symbol}</th>
+            <thead className="sticky top-0 bg-white dark:bg-dark-card z-20 shadow-sm border-b border-gray-200 dark:border-slate-800">
+              <tr className="text-gray-500 uppercase bg-gray-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
+                <th className="py-2 px-4 font-semibold">{t.symbol}</th>
                 <ThWithTooltip label={t.nominalValue} explanation={t.explanations.nominalValue} />
                 <ThWithTooltip label={t.entryPrice} explanation={t.explanations.entryPrice} />
                 <ThWithTooltip label={t.markPrice} explanation={t.explanations.markPrice} />
                 <ThWithTooltip label={t.liqPrice} explanation={t.explanations.liqPrice} />
                 <ThWithTooltip label={t.margin} explanation={t.explanations.margin} />
                 <ThWithTooltip label={t.unrealizedPnl} explanation={t.explanations.unrealizedPnl} align="right" />
-                <th className="py-1.5 px-4 font-semibold text-right">{t.action}</th>
+                <th className="py-2 px-4 font-semibold text-right">{t.action}</th>
               </tr>
             </thead>
             <tbody>
               {positions.map(pos => (
                 <tr key={pos.id} className="border-b border-gray-100 dark:border-slate-800/30 hover:bg-gray-50 dark:hover:bg-slate-800/20">
-                  <td className="py-1.5 px-4">
+                  <td className="py-3 px-4">
                     <div className="flex flex-col">
                       <span className="font-bold text-slate-900 dark:text-white font-mono text-sm">{pos.symbol}</span>
-                      <div className="flex items-center space-x-2"><span className={`font-bold ${pos.side === 'BUY' ? 'text-trade-up' : 'text-trade-down'}`}>{pos.side === 'BUY' ? t.long : t.short}</span><span className="text-[10px] text-gray-500 font-bold bg-gray-100 dark:bg-slate-800 px-1 rounded">{pos.leverage}x</span></div>
+                      <div className="flex items-center space-x-2">
+                        <span className={`font-bold ${pos.side === 'BUY' ? 'text-trade-up' : 'text-trade-down'}`}>{pos.side === 'BUY' ? t.long : t.short}</span>
+                        <span className="text-[10px] text-gray-500 font-bold bg-gray-100 dark:bg-slate-800 px-1 rounded">{pos.leverage}x</span>
+                      </div>
                     </div>
                   </td>
-                  <td className="py-1.5 px-4">
+                  <td className="py-3 px-4">
                     <div className="flex flex-col font-mono">
                       <span className="dark:text-white">{pos.size.toFixed(4)} XAU</span>
                       <span className="text-[10px] text-gray-500">{(pos.size * pos.markPrice).toFixed(2)} USDC</span>
                     </div>
                   </td>
-                  <td className="py-1.5 px-4 font-mono dark:text-white">{pos.entryPrice.toFixed(2)}</td>
-                  <td className="py-1.5 px-4 font-mono text-slate-400">{pos.markPrice.toFixed(2)}</td>
-                  <td className="py-1.5 px-4 text-orange-500 font-mono font-bold">{pos.liquidationPrice.toFixed(2)}</td>
-                  <td className="py-1.5 px-4 font-mono dark:text-white">
+                  <td className="py-3 px-4 font-mono dark:text-white">{pos.entryPrice.toFixed(2)}</td>
+                  <td className="py-3 px-4 font-mono text-slate-400">{pos.markPrice.toFixed(2)}</td>
+                  <td className="py-3 px-4 text-orange-500 font-mono font-bold">{pos.liquidationPrice.toFixed(2)}</td>
+                  <td className="py-3 px-4 font-mono dark:text-white">
                     <div className="flex flex-col leading-none">
                       <div className="flex items-center space-x-2">
                         <span>{pos.margin.toFixed(2)}</span>
@@ -262,16 +249,26 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
                       <span className="text-[9px] text-gray-500 uppercase mt-0.5">{pos.marginMode === MarginMode.CROSS ? t.cross : t.isolated}</span>
                     </div>
                   </td>
-                  <td className={`py-1.5 px-4 text-right font-mono ${pos.pnl >= 0 ? 'text-trade-up' : 'text-trade-down'}`}><div>{pos.pnl >= 0 ? '+' : ''}{pos.pnl.toFixed(2)}</div><div className="text-[10px] opacity-70">{pos.pnlPercent.toFixed(2)}%</div></td>
-                  <td className="py-1.5 px-4 text-right"><button onClick={() => setClosingPos(pos)} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-brand-500 dark:text-white rounded-md font-bold transition-all shadow-sm">{t.marketLimitClose}</button></td>
+                  <td className={`py-3 px-4 text-right font-mono ${pos.pnl >= 0 ? 'text-trade-up' : 'text-trade-down'}`}>
+                    <div>{pos.pnl >= 0 ? '+' : ''}{pos.pnl.toFixed(2)}</div>
+                    <div className="text-[10px] opacity-70">{pos.pnlPercent.toFixed(2)}%</div>
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <button onClick={() => setClosingPos(pos)} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-brand-500 dark:text-white rounded-md font-bold transition-all shadow-sm">{t.marketLimitClose}</button>
+                  </td>
                 </tr>
               ))}
+              {positions.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-10 text-center text-gray-400 italic">No open positions</td>
+                </tr>
+              )}
             </tbody>
           </table>
         ) : activeTab === 'openOrders' ? (
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-white dark:bg-dark-card z-10 border-b border-gray-200 dark:border-slate-800">
-               <tr className="text-gray-500 uppercase">
+          <table className="w-full text-left text-xs border-collapse min-w-[800px]">
+            <thead className="sticky top-0 bg-white dark:bg-dark-card z-20 shadow-sm border-b border-gray-200 dark:border-slate-800">
+               <tr className="text-gray-500 uppercase bg-gray-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
                  <th className="py-2 px-4">{t.symbol}</th>
                  <th className="py-2 px-4">{t.type}</th>
                  <th className="py-2 px-4">{t.price}</th>
@@ -284,23 +281,29 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
             </thead>
             <tbody>
               {orders.map(o => (
-                <tr key={o.id} className="border-b border-gray-100 dark:border-slate-800/30">
-                  <td className="py-2 px-4 font-bold text-slate-900 dark:text-white">{o.symbol} / <span className={o.side === 'BUY' ? 'text-trade-up' : 'text-trade-down'}>{o.side === 'BUY' ? t.long : t.short}</span></td>
-                  <td className="py-2 px-4 text-gray-500">{t.limit}</td>
-                  <td className="py-2 px-4 font-mono dark:text-white">{o.price.toFixed(2)}</td>
-                  <td className="py-2 px-4 font-mono dark:text-white">{o.filled.toFixed(4)}</td>
-                  <td className="py-2 px-4 font-mono dark:text-white">{o.amount.toFixed(4)}</td>
-                  <td className="py-2 px-4 font-mono dark:text-white">{((o.filled / o.amount) * 100).toFixed(2)}%</td>
-                  <td className="py-2 px-4 text-gray-500">{o.time}</td>
-                  <td className="py-2 px-4 text-right"><button onClick={() => onCancelOrder(o.id)} className="text-trade-down hover:underline font-bold">{t.cancelOrder}</button></td>
+                <tr key={o.id} className="border-b border-gray-100 dark:border-slate-800/30 hover:bg-gray-50 dark:hover:bg-slate-800/20">
+                  <td className="py-3 px-4">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-900 dark:text-white">{o.symbol} / <span className={o.side === 'BUY' ? 'text-trade-up' : 'text-trade-down'}>{o.side === 'BUY' ? t.buySide : t.sellSide}</span></span>
+                      <span className="text-[10px] text-gray-500 font-bold bg-gray-100 dark:bg-slate-800 px-1 rounded w-fit">{o.leverage}x</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-gray-500">{o.type === 'LIMIT' ? t.limit : t.market}</td>
+                  <td className="py-3 px-4 font-mono dark:text-white">{o.price.toFixed(2)}</td>
+                  <td className="py-3 px-4 font-mono dark:text-white">{o.filled.toFixed(4)}</td>
+                  <td className="py-3 px-4 font-mono dark:text-white">{o.amount.toFixed(4)}</td>
+                  <td className="py-3 px-4 font-mono dark:text-white">{((o.filled / o.amount) * 100).toFixed(2)}%</td>
+                  <td className="py-3 px-4 text-gray-500">{o.time}</td>
+                  <td className="py-3 px-4 text-right"><button onClick={() => onCancelOrder(o.id)} className="text-trade-down hover:underline font-bold">{t.cancelOrder}</button></td>
                 </tr>
               ))}
+              {orders.length === 0 && <tr><td colSpan={8} className="py-10 text-center text-gray-400 italic">No open orders</td></tr>}
             </tbody>
           </table>
         ) : activeTab === 'orderHistory' ? (
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-white dark:bg-dark-card z-10 border-b border-gray-200 dark:border-slate-800">
-               <tr className="text-gray-500 uppercase">
+          <table className="w-full text-left text-xs border-collapse min-w-[800px]">
+            <thead className="sticky top-0 bg-white dark:bg-dark-card z-20 shadow-sm border-b border-gray-200 dark:border-slate-800">
+               <tr className="text-gray-500 uppercase bg-gray-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
                  <th className="py-2 px-4">{t.symbol}</th>
                  <th className="py-2 px-4">{t.type}</th>
                  <th className="py-2 px-4">{t.price}</th>
@@ -312,22 +315,27 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
             </thead>
             <tbody>
               {MOCK_HISTORY_ORDERS.map(o => (
-                <tr key={o.id} className="border-b border-gray-100 dark:border-slate-800/30">
-                  <td className="py-2 px-4 font-bold text-slate-900 dark:text-white">{o.symbol} / <span className={o.side === 'BUY' ? 'text-trade-up' : 'text-trade-down'}>{o.side === 'BUY' ? t.long : t.short}</span></td>
-                  <td className="py-2 px-4 text-gray-500">{o.type === 'LIMIT' ? t.limit : t.market}</td>
-                  <td className="py-2 px-4 font-mono dark:text-white">{o.price.toFixed(2)}</td>
-                  <td className="py-2 px-4 font-mono dark:text-white">{o.filled.toFixed(4)}</td>
-                  <td className="py-2 px-4 font-mono dark:text-white">{o.total.toFixed(4)}</td>
-                  <td className="py-2 px-4"><span className={`px-2 py-0.5 rounded ${getStatusColor(o.status)}`}>{(t as any)[o.status] || o.status}</span></td>
-                  <td className="py-2 px-4 text-gray-500">{o.time}</td>
+                <tr key={o.id} className="border-b border-gray-100 dark:border-slate-800/30 hover:bg-gray-50 dark:hover:bg-slate-800/20">
+                  <td className="py-3 px-4">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-900 dark:text-white">{o.symbol} / <span className={o.side === 'BUY' ? 'text-trade-up' : 'text-trade-down'}>{o.side === 'BUY' ? t.buySide : t.sellSide}</span></span>
+                      <span className="text-[10px] text-gray-500 font-bold bg-gray-100 dark:bg-slate-800 px-1 rounded w-fit">{o.leverage}x</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-gray-500">{o.type === 'LIMIT' ? t.limit : t.market}</td>
+                  <td className="py-3 px-4 font-mono dark:text-white">{o.price.toFixed(2)}</td>
+                  <td className="py-3 px-4 font-mono dark:text-white">{o.filled.toFixed(4)}</td>
+                  <td className="py-3 px-4 font-mono dark:text-white">{o.total.toFixed(4)}</td>
+                  <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getStatusColor(o.status)}`}>{(t as any)[o.status] || o.status}</span></td>
+                  <td className="py-3 px-4 text-gray-500">{o.time}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : activeTab === 'tradeHistory' ? (
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-white dark:bg-dark-card z-10 border-b border-gray-200 dark:border-slate-800">
-               <tr className="text-gray-500 uppercase">
+          <table className="w-full text-left text-xs border-collapse min-w-[900px]">
+            <thead className="sticky top-0 bg-white dark:bg-dark-card z-20 shadow-sm border-b border-gray-200 dark:border-slate-800">
+               <tr className="text-gray-500 uppercase bg-gray-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
                  <th className="py-2 px-4">{t.symbol}</th>
                  <th className="py-2 px-4">{t.price}</th>
                  <th className="py-2 px-4">{t.amount}</th>
@@ -338,23 +346,23 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
                </tr>
             </thead>
             <tbody>
-              {recentTrades.map(t2 => (
+              {allTrades.map(t2 => (
                 <tr key={t2.id} className="border-b border-gray-100 dark:border-slate-800/30 hover:bg-gray-50 dark:hover:bg-slate-800/20">
-                  <td className="py-2 px-4 font-bold text-slate-900 dark:text-white">{t2.symbol} / <span className={t2.side === 'BUY' ? 'text-trade-up' : 'text-trade-down'}>{t2.side === 'BUY' ? t.long : t.short}</span></td>
-                  <td className="py-2 px-4 font-mono dark:text-white">{t2.price.toFixed(2)}</td>
-                  <td className="py-2 px-4 font-mono dark:text-white">{t2.amount.toFixed(4)}</td>
-                  <td className="py-2 px-4 font-mono dark:text-white">{t2.total.toFixed(2)}</td>
-                  <td className="py-2 px-4 font-mono text-rose-500">{t2.fee.toFixed(2)}</td>
-                  <td className={`py-2 px-4 font-mono font-bold ${t2.pnl >= 0 ? 'text-teal-500' : 'text-rose-500'}`}>{t2.pnl >= 0 ? '+' : ''}{t2.pnl.toFixed(2)}</td>
-                  <td className="py-2 px-4 text-gray-500">{t2.time}</td>
+                  <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">{t2.symbol} / <span className={t2.side === 'BUY' ? 'text-trade-up' : 'text-trade-down'}>{t2.side === 'BUY' ? t.buySide : t.sellSide}</span></td>
+                  <td className="py-3 px-4 font-mono dark:text-white">{t2.price.toFixed(2)}</td>
+                  <td className="py-3 px-4 font-mono dark:text-white">{t2.amount.toFixed(4)}</td>
+                  <td className="py-3 px-4 font-mono dark:text-white">{t2.total.toFixed(2)}</td>
+                  <td className="py-3 px-4 font-mono text-rose-500">{t2.fee.toFixed(2)}</td>
+                  <td className={`py-3 px-4 font-mono font-bold ${t2.pnl >= 0 ? 'text-teal-500' : 'text-rose-500'}`}>{t2.pnl >= 0 ? '+' : ''}{t2.pnl.toFixed(2)}</td>
+                  <td className="py-3 px-4 text-gray-500">{t2.time}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : activeTab === 'assetsHistory' ? (
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-white dark:bg-dark-card z-10 border-b border-gray-200 dark:border-slate-800">
-               <tr className="text-gray-500 uppercase">
+          <table className="w-full text-left text-xs border-collapse min-w-[900px]">
+            <thead className="sticky top-0 bg-white dark:bg-dark-card z-20 shadow-sm border-b border-gray-200 dark:border-slate-800">
+               <tr className="text-gray-500 uppercase bg-gray-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
                  <th className="py-2 px-4">{t.assetHeader}</th>
                  <th className="py-2 px-4">{t.type}</th>
                  <th className="py-2 px-4">{t.amount}</th>
@@ -366,58 +374,62 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
             </thead>
             <tbody>
               {assetHistory.map(a => (
-                <tr key={a.id} className="border-b border-gray-100 dark:border-slate-800/30">
-                  <td className="py-2 px-4 dark:text-white">{a.asset}</td>
-                  <td className="py-2 px-4 text-gray-500">{(t as any)[a.type] || a.type}</td>
-                  <td className={`py-2 px-4 font-mono font-bold ${a.type === 'deposit' ? 'text-teal-500' : 'text-rose-500'}`}>{a.amount.toLocaleString()}</td>
-                  <td className="py-2 px-4 text-rose-500 font-mono">{a.fee ? a.fee.toFixed(2) : '--'}</td>
-                  <td className="py-2 px-4 font-mono text-brand-500 cursor-pointer hover:underline">{a.hash}</td>
-                  <td className="py-2 px-4"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getStatusColor(a.status)}`}>{(t as any)[a.status] || a.status}</span></td>
-                  <td className="py-2 px-4 text-gray-500">{a.time}</td>
+                <tr key={a.id} className="border-b border-gray-100 dark:border-slate-800/30 hover:bg-gray-50 dark:hover:bg-slate-800/20">
+                  <td className="py-3 px-4 dark:text-white">{a.asset}</td>
+                  <td className="py-3 px-4 text-gray-500">{(t as any)[a.type] || a.type}</td>
+                  <td className={`py-3 px-4 font-mono font-bold ${a.type === 'deposit' ? 'text-teal-500' : 'text-rose-500'}`}>{a.amount.toLocaleString()}</td>
+                  <td className="py-3 px-4 text-rose-500 font-mono">{a.fee ? a.fee.toFixed(2) : '--'}</td>
+                  <td className="py-3 px-4 font-mono text-brand-500 cursor-pointer hover:underline">{a.hash}</td>
+                  <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getStatusColor(a.status)}`}>{(t as any)[a.status] || a.status}</span></td>
+                  <td className="py-3 px-4 text-gray-500">{a.time}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : activeTab === 'fundingHistory' ? (
-          <div className="flex flex-col h-full">
-            <div className="p-3 border-b border-gray-100 dark:border-slate-800 flex items-center">
-               <div className="relative group">
-                 <button className="flex items-center space-x-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-3 py-1 rounded text-xs">
-                   <Filter size={14} className="text-gray-400" />
-                   <span>{(t as any)[fundingFilter] || t.all}</span>
-                   <ChevronDown size={14} />
-                 </button>
-                 <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-20 hidden group-hover:block py-1">
-                   {['all', 'tradingFee', 'fundingFee', 'realizedPnl', 'liquidationFee'].map(f => (
-                     <button key={f} onClick={() => setFundingFilter(f)} className="w-full text-left px-4 py-2 text-xs hover:bg-gray-100 dark:hover:bg-slate-700">{(t as any)[f] || t.all}</button>
-                   ))}
-                 </div>
-               </div>
+          <div className="flex flex-col min-h-full min-w-[700px]">
+            {/* 资金记录专用的 Sticky 头部 */}
+            <div className="sticky top-0 bg-white dark:bg-dark-card z-20 shadow-sm border-b border-gray-200 dark:border-slate-800">
+              <div className="p-3 flex items-center bg-gray-50/50 dark:bg-slate-900/50">
+                <div className="relative group">
+                  <button className="flex items-center space-x-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-3 py-1 rounded text-xs transition hover:border-brand-500">
+                    <Filter size={14} className="text-gray-400" />
+                    <span>{(t as any)[fundingFilter] || t.all}</span>
+                    <ChevronDown size={14} />
+                  </button>
+                  <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl z-40 hidden group-hover:block py-1">
+                    {['all', 'tradingFee', 'fundingFee', 'realizedPnl', 'liquidationFee'].map(f => (
+                      <button key={f} onClick={() => setFundingFilter(f)} className="w-full text-left px-4 py-2 text-xs hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-white">{(t as any)[f] || t.all}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-gray-100/80 dark:bg-slate-900/80 backdrop-blur-sm">
+                  <tr className="text-gray-500 uppercase border-b border-gray-200 dark:border-slate-800">
+                    <th className="py-2 px-4 w-1/4">{t.time}</th>
+                    <th className="py-2 px-4 w-1/4">{t.type}</th>
+                    <th className="py-2 px-4 w-1/4">{t.amount} (USDC)</th>
+                    <th className="py-2 px-4 w-1/4">{t.contract}</th>
+                  </tr>
+                </thead>
+              </table>
             </div>
+            {/* 数据行 */}
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-gray-50 dark:bg-slate-900/50">
-                <tr className="text-gray-500 uppercase border-b border-gray-200 dark:border-slate-800">
-                  <th className="py-2 px-4">{t.time}</th>
-                  <th className="py-2 px-4">{t.type}</th>
-                  <th className="py-2 px-4">{t.amount} (USDC)</th>
-                  <th className="py-2 px-4">{t.contract}</th>
-                </tr>
-              </thead>
               <tbody>
                 {filteredFunding.map(r => (
                   <tr key={r.id} className="border-b border-gray-100 dark:border-slate-800/30 hover:bg-gray-50 dark:hover:bg-slate-800/20">
-                    <td className="py-2 px-4 text-gray-500">{r.time}</td>
-                    <td className="py-2 px-4 dark:text-white">{(t as any)[r.type] || r.type}</td>
-                    <td className={`py-2 px-4 font-mono font-bold ${r.amount >= 0 ? 'text-teal-500' : 'text-rose-500'}`}>{r.amount >= 0 ? '+' : ''}{r.amount.toFixed(2)}</td>
-                    <td className="py-2 px-4 text-gray-400">{r.symbol}</td>
+                    <td className="py-3 px-4 w-1/4 text-gray-500">{r.time}</td>
+                    <td className="py-3 px-4 w-1/4 dark:text-white">{(t as any)[r.type] || r.type}</td>
+                    <td className={`py-3 px-4 w-1/4 font-mono font-bold ${r.amount >= 0 ? 'text-teal-500' : 'text-rose-500'}`}>{r.amount >= 0 ? '+' : ''}{r.amount.toFixed(2)}</td>
+                    <td className="py-3 px-4 w-1/4 text-gray-400">{r.symbol}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="p-10 text-center text-gray-500">{(t as any)[activeTab] || activeTab} Demo Data</div>
-        )}
+        ) : null}
       </div>
 
       {showCloseAllModal && (

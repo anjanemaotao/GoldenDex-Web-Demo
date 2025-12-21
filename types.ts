@@ -41,6 +41,7 @@ export interface Order {
   price: number;
   amount: number;
   filled: number;
+  leverage: number;
   status: 'OPEN' | 'FILLED' | 'CANCELED';
   time: string;
 }

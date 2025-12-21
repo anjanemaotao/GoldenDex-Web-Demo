@@ -12,6 +12,7 @@ interface TradeFormProps {
   onOrder: (side: OrderSide, type: OrderType, size: number, price: number, leverage: number, marginMode: MarginMode) => void;
   lastPrice: number;
   availableBalance: number;
+  currentSymbol: string;
 }
 
 export const CustomSlider: React.FC<{ value: number; onChange: (v: number) => void; theme: Theme }> = ({ value, onChange, theme }) => {
@@ -42,22 +43,22 @@ export const CustomSlider: React.FC<{ value: number; onChange: (v: number) => vo
   );
 };
 
-export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, onConnect, onOrder, lastPrice, availableBalance }) => {
+export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, onConnect, onOrder, lastPrice, availableBalance, currentSymbol }) => {
   const t = TRANSLATIONS[lang];
   const [type, setType] = useState<OrderType>(OrderType.MARKET);
   const [marginMode, setMarginMode] = useState<MarginMode>(MarginMode.CROSS);
   const [leverage, setLeverage] = useState<number>(20);
   const [amount, setAmount] = useState<string>('');
   const [price, setPrice] = useState<string>('');
-  const [unit, setUnit] = useState<'XAU' | 'USDC'>('XAU');
+  const [unit, setUnit] = useState<'ASSET' | 'USDC'>('ASSET');
   const [sliderValue, setSliderValue] = useState(0);
   const [showLeveragePopup, setShowLeveragePopup] = useState(false);
 
+  const assetSymbol = currentSymbol.replace('USDC', '');
   const effectivePrice = type === OrderType.LIMIT && price ? parseFloat(price) : lastPrice;
   
-  // Calculate display values
   const inputNum = parseFloat(amount) || 0;
-  const xauAmount = unit === 'XAU' ? inputNum : inputNum / effectivePrice;
+  const xauAmount = unit === 'ASSET' ? inputNum : inputNum / effectivePrice;
   const usdcValue = unit === 'USDC' ? inputNum : inputNum * effectivePrice;
   
   const marginReq = usdcValue / leverage;
@@ -91,7 +92,6 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
 
   const calcLiqPrice = (side: OrderSide) => {
     if (effectivePrice <= 0) return "0.00";
-    // Simplified liq formula for demo
     const factor = side === OrderSide.BUY ? (1 - 0.9 / leverage) : (1 + 0.9 / leverage);
     return (effectivePrice * factor).toFixed(2);
   };
@@ -124,13 +124,13 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
           <span className="text-gray-500">{t.avail}: <span className="font-mono">{availableBalance.toFixed(2)} USDC</span></span>
         </div>
         <div className="relative flex items-center">
-          <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-transparent border border-gray-300 dark:border-slate-600 rounded p-2.5 pr-20 text-sm font-bold font-mono outline-none dark:text-white" placeholder="0.00" />
+          <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-transparent border border-gray-300 dark:border-slate-600 rounded p-2.5 pr-24 text-sm font-bold font-mono outline-none dark:text-white" placeholder="0.00" />
           <button 
-            onClick={() => setUnit(u => u === 'XAU' ? 'USDC' : 'XAU')}
+            onClick={() => setUnit(u => u === 'ASSET' ? 'USDC' : 'ASSET')}
             className="absolute right-0 h-full flex items-center pr-2 group"
           >
-            <span className="bg-gray-200 dark:bg-slate-700 text-xs font-bold px-2 py-1 rounded flex items-center space-x-1 group-hover:bg-slate-600 transition-colors">
-              <span>{unit}</span>
+            <span className="bg-gray-200 dark:bg-slate-700 text-xs font-bold px-2 py-1 rounded flex items-center space-x-1 group-hover:bg-slate-600 transition-colors uppercase">
+              <span>{unit === 'ASSET' ? assetSymbol : 'USDC'}</span>
               <Repeat size={10} className="text-gray-500" />
             </span>
           </button>
@@ -147,7 +147,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
           <div className="px-1 space-y-1">
              <InfoRow label={t.liqPrice} value={calcLiqPrice(OrderSide.BUY)} color="text-trade-up" />
              <InfoRow label={t.margin} value={marginReq.toFixed(2)} color="text-trade-up" />
-             <InfoRow label={t.maxOpen} value={`${(maxOpenUSDC / effectivePrice).toFixed(2)} XAU`} color="text-trade-up" />
+             <InfoRow label={t.maxOpen} value={`${(maxOpenUSDC / effectivePrice).toFixed(2)} ${assetSymbol}`} color="text-trade-up" />
              <InfoRow label={t.estFee} value={`${estFee.toFixed(2)} USDC`} color="text-trade-up" />
           </div>
         </div>
@@ -156,7 +156,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
           <div className="px-1 space-y-1">
              <InfoRow label={t.liqPrice} value={calcLiqPrice(OrderSide.SELL)} color="text-trade-down" />
              <InfoRow label={t.margin} value={marginReq.toFixed(2)} color="text-trade-down" />
-             <InfoRow label={t.maxOpen} value={`${(maxOpenUSDC / effectivePrice).toFixed(2)} XAU`} color="text-trade-down" />
+             <InfoRow label={t.maxOpen} value={`${(maxOpenUSDC / effectivePrice).toFixed(2)} ${assetSymbol}`} color="text-trade-down" />
              <InfoRow label={t.estFee} value={`${estFee.toFixed(2)} USDC`} color="text-trade-down" />
           </div>
         </div>
@@ -169,9 +169,9 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
              <div className="flex justify-between items-center mb-4"><span className="font-bold text-sm dark:text-white">{t.adjustLeverage}</span><button onClick={() => setShowLeveragePopup(false)} className="dark:text-white"><X size={16} /></button></div>
              <div className="bg-gray-100 dark:bg-slate-800 rounded p-2 mb-6 text-center"><span className="text-2xl font-bold text-brand-500">{leverage}x</span></div>
              <div className="relative px-1">
-               <input type="range" min="1" max="20" step="1" value={leverage} onChange={(e) => setLeverage(parseInt(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-500 mb-6" />
+               <input type="range" min="1" max="50" step="1" value={leverage} onChange={(e) => setLeverage(parseInt(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-500 mb-6" />
                <div className="absolute -bottom-1 left-0 text-[10px] font-bold text-gray-400">1x</div>
-               <div className="absolute -bottom-1 right-0 text-[10px] font-bold text-gray-400">20x</div>
+               <div className="absolute -bottom-1 right-0 text-[10px] font-bold text-gray-400">50x</div>
              </div>
              <button onClick={() => setShowLeveragePopup(false)} className="w-full py-2 bg-brand-500 text-white font-bold rounded text-sm mt-4">{t.confirm}</button>
           </div>
