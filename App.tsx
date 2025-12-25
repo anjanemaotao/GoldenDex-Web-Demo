@@ -33,6 +33,9 @@ export default function App() {
   const [assetModal, setAssetModal] = useState<{ isOpen: boolean, type: 'deposit' | 'withdraw' }>({ isOpen: false, type: 'deposit' });
   const [marginManage, setMarginManage] = useState<{ isOpen: boolean; type: 'add' | 'extract'; pos: Position | null }>({ isOpen: false, type: 'add', pos: null });
 
+  // State for populating price from OrderBook to TradeForm
+  const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
+
   const addRichNotification = (type: RichNotification['type'], title: string, message: string) => {
     const id = Date.now().toString();
     setNotifications(prev => [...prev, { id, type, title, message }]);
@@ -107,6 +110,7 @@ export default function App() {
   };
 
   const handleAssetConfirm = (type: 'deposit' | 'withdraw', v: number) => {
+     // Note: v is the USDC equivalent for Swap/Deposit, or requested amount for Withdraw
      const status = type === 'deposit' ? 'completed' : (v >= 100 ? 'reviewing' : 'completed');
      const newRecord = {
         id: Date.now().toString(),
@@ -124,14 +128,14 @@ export default function App() {
      if (type === 'deposit') {
        const title = lang === 'en' ? 'Deposit Success' : (lang === 'zh-CN' ? '充值成功' : '充值成功');
        const body = lang === 'en' 
-        ? `You have successfully deposited ${v.toLocaleString()} USDC, please check.`
-        : `您已成功充值 ${v.toLocaleString()} USDC，请查看`;
+        ? `You have successfully deposited ${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC, please check.`
+        : `您已成功充值 ${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC，请查看`;
        addRichNotification('success', title, body);
      } else {
        const title = lang === 'en' ? 'Withdrawal Success' : (lang === 'zh-CN' ? '提现成功' : '提現成功');
        const body = lang === 'en'
-        ? `You have successfully withdrawn ${v.toLocaleString()} USDC to 0x4b...5591 (Arbitrum), estimated arrival in 1 minute.`
-        : `您已成功提现 ${v.toLocaleString()} USDC 至 0x4b...5591 (Arbitrum)，预计 1 分钟到账。`;
+        ? `You have successfully withdrawn ${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC to 0x4b...5591 (Arbitrum), estimated arrival in 1 minute.`
+        : `您已成功提现 ${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC 至 0x4b...5591 (Arbitrum)，预计 1 分钟到账。`;
        addRichNotification('success', title, body);
      }
   };
@@ -167,7 +171,9 @@ export default function App() {
                 Simulate Liq.
               </button>
             </div>
-            <div className="w-[280px] hidden lg:block bg-white dark:bg-dark-card shrink-0"><OrderBook lang={lang} lastPrice={marketData.lastPrice} /></div>
+            <div className="w-[280px] hidden lg:block bg-white dark:bg-dark-card shrink-0">
+              <OrderBook lang={lang} lastPrice={marketData.lastPrice} onPriceClick={(p) => setSelectedPrice(p.toFixed(2))} />
+            </div>
           </div>
           <div className="flex-[2] min-h-[250px] flex flex-col overflow-hidden">
              <PositionTable 
@@ -182,7 +188,17 @@ export default function App() {
         </div>
         <div className="w-[340px] flex flex-col border-l border-gray-200 dark:border-dark-border bg-white dark:bg-dark-card z-30 shrink-0">
           <div className="flex-1 overflow-y-auto">
-            <TradeForm lang={lang} theme={theme} isConnected={isSigned} onConnect={() => setShowWalletModal(true)} onOrder={handleOrder} lastPrice={marketData.lastPrice} availableBalance={accountInfo.marginBalance} currentSymbol={marketData.symbol} />
+            <TradeForm 
+              lang={lang} 
+              theme={theme} 
+              isConnected={isSigned} 
+              onConnect={() => setShowWalletModal(true)} 
+              onOrder={handleOrder} 
+              lastPrice={marketData.lastPrice} 
+              availableBalance={accountInfo.marginBalance} 
+              currentSymbol={marketData.symbol} 
+              selectedPrice={selectedPrice}
+            />
           </div>
           <div className="shrink-0 border-t border-gray-200 dark:border-dark-border"><AccountInfo lang={lang} info={accountInfo} /></div>
         </div>

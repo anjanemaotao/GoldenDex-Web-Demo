@@ -1,22 +1,38 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Language, WalletProvider, Theme, Position } from '../types';
 import { TRANSLATIONS, INITIAL_ACCOUNT_INFO } from '../constants';
-import { X, Copy, ExternalLink, LogOut, Settings, Check, ArrowRightIcon, ShieldCheck, Mail, Loader2, Info } from 'lucide-react';
+import { X, Copy, ExternalLink, LogOut, Settings, Check, ArrowRightIcon, ShieldCheck, Mail, Loader2, Info, ChevronDown } from 'lucide-react';
 import { CustomSlider } from './TradeForm';
+
+// Token Icons for the selector
+const TokenIcons: Record<string, React.ReactNode> = {
+  USDC: <img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.svg" className="w-5 h-5" alt="usdc" />,
+  ETH: <img src="https://cryptologos.cc/logos/ethereum-eth-logo.svg" className="w-5 h-5" alt="eth" />,
+  ARB: <img src="https://cryptologos.cc/logos/arbitrum-arb-logo.svg" className="w-5 h-5" alt="arb" />,
+  USDT: <img src="https://cryptologos.cc/logos/tether-usdt-logo.svg" className="w-5 h-5" alt="usdt" />,
+};
+
+// Mock balances for various tokens
+const MOCK_WALLET_BALANCES: Record<string, number> = {
+  USDC: 25000.00,
+  ETH: 12.45,
+  ARB: 8420.00,
+  USDT: 4210.50,
+};
 
 // Redesigned high-quality SVGs for Metamask and OKX
 const MetaMaskLogo = () => (
   <svg width="24" height="24" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
-    <path d="M239.31 16.711l-94.864 73.19 19.344 26.685 75.52-60.912v-.235l-2.73-3.181-.271-3.64.24-4.814-11.239-17.093z" fill="#e2761b"/><path d="M16.69 16.711l94.864 73.19-19.344 26.685-75.52-60.912v-.235l2.73-3.181.271-3.64-.24-4.814 11.239-17.093z" fill="#e4761b"/><path d="M205.5 174.5l-33.5 17.5-31.5-12.5-3.5-37.5 10.5-23.5 35.5 15.5 22.5 40.5z" fill="#d7c1b3"/><path d="M50.5 174.5l33.5 17.5 31.5-12.5 3.5-37.5-10.5-23.5-35.5 15.5-22.5 40.5z" fill="#d7c1b3"/><path d="M128 239.31l-34.864-32.19 12.344-12.685 22.52 16.912 22.52-16.912 12.344 12.685L128 239.31z" fill="#233447"/><path d="M128 128l32 32-32 48-32-48 32-32z" fill="#161616"/>
+    <path d="M239.31 16.711l-94.864 73.19 19.344 26.685 75.52-60.912v-.235l-2.73-3.181-.271-3.64.24-4.814-11.239-17.093z" fill="#e2761b"/><path d="M16.69 16.711l94.864 73.19-19.344 26.685-75.52-60.912v-.235l2.73-3.181.271-3.64-.24-4.814-11.239-17.093z" fill="#e4761b"/><path d="M205.5 174.5l-33.5 17.5-31.5-12.5-3.5-37.5 10.5-23.5 35.5 15.5 22.5 40.5z" fill="#d7c1b3"/><path d="M50.5 174.5l33.5 17.5 31.5-12.5 3.5-37.5-10.5-23.5-35.5 15.5-22.5 40.5z" fill="#d7c1b3"/><path d="M128 239.31l-34.864-32.19 12.344-12.685 22.52 16.912 22.52-16.912 12.344 12.685L128 239.31z" fill="#233447"/><path d="M128 128l32 32-32 48-32-48 32-32z" fill="#161616"/>
   </svg>
 );
 const OKXLogo = () => (
   <svg width="24" height="24" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <rect width="100" height="100" rx="20" fill="black"/>
     <rect x="20" y="20" width="25" height="25" fill="white"/>
-    <rect x="55" y="20" width="25" height="25" fill="white"/>
     <rect x="20" y="55" width="25" height="25" fill="white"/>
+    <rect x="55" y="20" width="25" height="25" fill="white"/>
     <rect x="55" y="55" width="25" height="25" fill="white"/>
   </svg>
 );
@@ -232,37 +248,224 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
   const t = TRANSLATIONS[lang];
   const [amount, setAmount] = useState('');
   const [val, setVal] = useState(0);
+  const [selectedToken, setSelectedToken] = useState('USDC');
+  const [tokenSelectorOpen, setTokenSelectorOpen] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [processingState, setProcessingState] = useState<null | 'approving' | 'swapping' | 'depositing' | 'withdrawing'>(null);
+  const selectorRef = useRef<HTMLDivElement>(null);
+
+  const tokens = ['USDC', 'ETH', 'ARB', 'USDT'];
+  const currentWalletBalance = MOCK_WALLET_BALANCES[selectedToken] || 0;
 
   const numAmount = parseFloat(amount) || 0;
+  const isQuickSwap = type === 'deposit' && selectedToken !== 'USDC';
+  
+  // Calculate estimation for Swap
+  const getConvertedValue = () => {
+    if (!isQuickSwap) return numAmount;
+    const rate = selectedToken === 'ETH' ? 3245 : selectedToken === 'ARB' ? 0.82 : 1.0;
+    return numAmount * rate;
+  };
+
+  const actualReceivedUSDC = getConvertedValue();
   const actualAmount = type === 'withdraw' ? Math.max(0, numAmount - 0.5) : numAmount;
 
-  const handleSlider = (v: number) => { setVal(v); setAmount((maxAmount * v / 100).toFixed(2)); };
+  const handleSlider = (v: number) => { 
+    setVal(v); 
+    setAmount((currentWalletBalance * v / 100).toFixed(selectedToken === 'ETH' ? 4 : 2)); 
+    setHasError(false);
+  };
+
+  const handleAction = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      setHasError(true);
+      return;
+    }
+
+    if (type === 'deposit') {
+      // Simulation steps for Deposit
+      // 1. Approving (Skip for ETH)
+      if (selectedToken !== 'ETH') {
+        setProcessingState('approving');
+        await new Promise(r => setTimeout(r, 1500));
+      }
+      
+      // 2. Swapping (Only for non-USDC tokens)
+      if (selectedToken !== 'USDC') {
+        setProcessingState('swapping');
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      // 3. Depositing (Always)
+      setProcessingState('depositing');
+      await new Promise(r => setTimeout(r, 1500));
+    } else {
+      // Simulation steps for Withdrawal
+      setProcessingState('withdrawing');
+      await new Promise(r => setTimeout(r, 2000));
+    }
+
+    // Pass the actual USDC value for confirmations/notifications
+    onConfirm(actualReceivedUSDC);
+    setAmount('');
+    setVal(0);
+    setHasError(false);
+    setProcessingState(null);
+  };
+
+  // Reset state on open
+  useEffect(() => {
+    if (isOpen) {
+      setHasError(false);
+      setAmount('');
+      setVal(0);
+      setProcessingState(null);
+      if (type === 'withdraw') {
+        setSelectedToken('USDC');
+      }
+    }
+  }, [isOpen, type]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (selectorRef.current && !selectorRef.current.contains(e.target as Node)) {
+        setTokenSelectorOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getButtonText = () => {
+    if (processingState === 'approving') {
+      return t.approvingToken.replace('{token}', selectedToken);
+    }
+    if (processingState === 'swapping') {
+      return t.swappingToken;
+    }
+    if (processingState === 'withdrawing') {
+      return t.withdrawingToken;
+    }
+    if (processingState === 'depositing') {
+      return t.depositingToVault;
+    }
+    if (isQuickSwap) return t.swap;
+    return t.confirm;
+  };
 
   return (
     <BaseModal isOpen={isOpen} onClose={onClose} title={type === 'deposit' ? t.deposit : t.withdraw}>
       <div className="space-y-5">
+        {/* Network (Always on top now) */}
+        <div className="space-y-2">
+          <div className="text-xs font-bold text-gray-500 uppercase">{t.network}</div>
+          <div className="flex items-center justify-between border border-gray-200 dark:border-slate-700 p-2.5 rounded bg-gray-50 dark:bg-slate-800/50">
+             <div className="flex items-center space-x-3">
+               <ArbitrumLogo />
+               <span className="font-bold text-sm dark:text-white">Arbitrum</span>
+             </div>
+             {isQuickSwap && (
+               <div className="flex items-center space-x-1 text-[10px] bg-brand-500/10 text-brand-500 px-2 py-0.5 rounded font-black">
+                 <Info size={10} />
+                 <span>Auto-Swap to USDC</span>
+               </div>
+             )}
+          </div>
+        </div>
+
+        {/* Token Selector */}
+        {type === 'deposit' ? (
+          <div className="space-y-2 relative" ref={selectorRef}>
+            <div className="text-xs font-bold text-gray-500 uppercase">{t.selectToken}</div>
+            <button 
+              onClick={() => !processingState && setTokenSelectorOpen(!tokenSelectorOpen)}
+              disabled={!!processingState}
+              className={`w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg hover:border-brand-500 transition-all dark:text-white ${processingState ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <div className="flex items-center space-x-3">
+                {TokenIcons[selectedToken]}
+                <span className="font-bold">{selectedToken}</span>
+              </div>
+              <ChevronDown size={18} className={`transition-transform ${tokenSelectorOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {tokenSelectorOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dark-card border border-gray-200 dark:border-slate-700 rounded-lg shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                {tokens.map(tk => (
+                  <button 
+                    key={tk}
+                    onClick={() => {
+                      setSelectedToken(tk);
+                      setTokenSelectorOpen(false);
+                      setAmount('');
+                      setVal(0);
+                      setHasError(false);
+                    }}
+                    className={`w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors ${selectedToken === tk ? 'bg-brand-500/10' : ''}`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      {TokenIcons[tk]}
+                      <span className={`font-bold ${selectedToken === tk ? 'text-brand-500' : 'dark:text-white'}`}>{tk}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-bold dark:text-white">{MOCK_WALLET_BALANCES[tk].toLocaleString()}</div>
+                      <div className="text-[10px] text-gray-500 uppercase">{tk}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+           <div className="space-y-2">
+             <div className="text-xs font-bold text-gray-500 uppercase">{t.selectToken}</div>
+             <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg dark:text-white opacity-80">
+               {TokenIcons.USDC}
+               <span className="font-bold">USDC</span>
+             </div>
+           </div>
+        )}
+
+        {/* Amount Section */}
         <div className="space-y-2">
           <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
             <span>{t.amount}</span>
-            <span>{type === 'deposit' ? (lang === 'zh-CN' ? '钱包可用' : 'Wallet Avail') : (lang === 'zh-CN' ? '可提现' : 'Avail to Withdraw')}: {maxAmount.toLocaleString()} USDC</span>
+            <span>{type === 'deposit' ? t.walletBalance : (lang === 'zh-CN' ? '可提现' : 'Avail to Withdraw')}: {currentWalletBalance.toLocaleString()} {selectedToken}</span>
           </div>
           <div className="relative">
-            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder={t.amount} className="w-full bg-transparent border border-gray-200 dark:border-slate-700 rounded p-2.5 pr-16 text-sm font-mono outline-none dark:text-white" />
-            <span className="absolute right-3 top-2.5 text-xs text-gray-500 font-bold">USDC</span>
+            <input 
+              type="number" 
+              value={amount} 
+              disabled={!!processingState}
+              onChange={e => {
+                setAmount(e.target.value);
+                setHasError(false);
+              }}
+              placeholder={t.amount} 
+              className={`w-full bg-transparent border rounded p-2.5 pr-16 text-sm font-mono outline-none dark:text-white transition-all ${hasError ? 'border-red-500 ring-1 ring-red-500/20 shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'border-gray-200 dark:border-slate-700'} ${processingState ? 'opacity-50' : ''}`} 
+            />
+            <span className="absolute right-3 top-2.5 text-xs text-gray-500 font-bold">{selectedToken}</span>
           </div>
-          <div className="pt-2"><CustomSlider value={val} onChange={handleSlider} theme={theme} /></div>
+          <div className={`pt-2 ${processingState ? 'pointer-events-none opacity-50' : ''}`}><CustomSlider value={val} onChange={handleSlider} theme={theme} /></div>
         </div>
 
-        <div className="space-y-2">
-          <div className="text-xs font-bold text-gray-500 uppercase">{t.network}</div>
-          <div className="flex items-center space-x-3 border border-gray-200 dark:border-slate-700 p-2.5 rounded bg-gray-50 dark:bg-slate-800/50">
-             <ArbitrumLogo />
-             <span className="font-bold text-sm dark:text-white">Arbitrum</span>
-          </div>
-        </div>
-
+        {/* Tips / Fee Section */}
         {type === 'deposit' ? (
-           <p className="text-xs text-orange-500 font-medium">{t.depositTips}</p>
+           <div className="space-y-1">
+             <p className="text-[10px] text-gray-500 leading-tight">
+               {isQuickSwap 
+                 ? (lang === 'en' ? 'Quick Swap uses decentralized aggregators to convert your deposit to USDC.' : '闪兑功能将通过去中心化聚合器自动将您的充值转换为 USDC。') 
+                 : t.depositTips}
+             </p>
+             {isQuickSwap && numAmount > 0 && (
+                <div className="flex justify-between items-center bg-brand-500/5 p-2 rounded border border-brand-500/20 mt-2">
+                  <span className="text-[11px] font-bold text-gray-500">{lang === 'en' ? 'Est. Received' : '预估到账'}</span>
+                  <span className="font-mono text-xs font-bold text-brand-500">
+                    ≈ {actualReceivedUSDC.toFixed(2)} USDC
+                  </span>
+                </div>
+             )}
+           </div>
         ) : (
            <div className="space-y-1 pt-1">
               <div className="flex justify-between text-xs text-gray-500"><span>{t.withdrawFee}</span><span className="text-red-400">0.5 USDC</span></div>
@@ -270,9 +473,17 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
            </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 pt-4">
-           <button onClick={onClose} className="py-2.5 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded transition">{t.cancel}</button>
-           <button onClick={() => onConfirm(numAmount)} className="py-2.5 bg-[#8B5E14] hover:bg-[#7a5212] text-white font-bold rounded shadow-xl transition">{t.confirm}</button>
+        {/* Footer Buttons */}
+        <div className="grid grid-cols-2 gap-4 pt-2">
+           <button onClick={onClose} disabled={!!processingState} className={`py-2.5 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded transition-all ${processingState ? 'opacity-50 cursor-not-allowed' : ''}`}>{t.cancel}</button>
+           <button 
+            onClick={handleAction} 
+            disabled={!!processingState}
+            className={`py-2.5 text-white font-bold rounded shadow-xl transition-all flex items-center justify-center space-x-2 ${isQuickSwap ? 'bg-brand-500 hover:bg-brand-600' : 'bg-[#8B5E14] hover:bg-[#7a5212]'} ${processingState ? 'opacity-80' : ''}`}
+           >
+             {processingState && <Loader2 size={16} className="animate-spin" />}
+             <span>{getButtonText()}</span>
+           </button>
         </div>
       </div>
     </BaseModal>

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Language, MarginMode, OrderType, OrderSide, Theme } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { Edit3, X, Repeat } from 'lucide-react';
@@ -13,6 +13,7 @@ interface TradeFormProps {
   lastPrice: number;
   availableBalance: number;
   currentSymbol: string;
+  selectedPrice?: string | null;
 }
 
 export const CustomSlider: React.FC<{ value: number; onChange: (v: number) => void; theme: Theme }> = ({ value, onChange, theme }) => {
@@ -43,7 +44,7 @@ export const CustomSlider: React.FC<{ value: number; onChange: (v: number) => vo
   );
 };
 
-export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, onConnect, onOrder, lastPrice, availableBalance, currentSymbol }) => {
+export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, onConnect, onOrder, lastPrice, availableBalance, currentSymbol, selectedPrice }) => {
   const t = TRANSLATIONS[lang];
   const [type, setType] = useState<OrderType>(OrderType.MARKET);
   const [marginMode, setMarginMode] = useState<MarginMode>(MarginMode.CROSS);
@@ -53,6 +54,19 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
   const [unit, setUnit] = useState<'ASSET' | 'USDC'>('ASSET');
   const [sliderValue, setSliderValue] = useState(0);
   const [showLeveragePopup, setShowLeveragePopup] = useState(false);
+  
+  // Validation states
+  const [priceError, setPriceError] = useState(false);
+  const [amountError, setAmountError] = useState(false);
+
+  // Sync external price click
+  useEffect(() => {
+    if (selectedPrice) {
+      setPrice(selectedPrice);
+      setType(OrderType.LIMIT);
+      setPriceError(false);
+    }
+  }, [selectedPrice]);
 
   const assetSymbol = currentSymbol.replace('USDC', '');
   const effectivePrice = type === OrderType.LIMIT && price ? parseFloat(price) : lastPrice;
@@ -73,14 +87,33 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
     } else {
       setAmount((targetUSDC / effectivePrice).toFixed(4));
     }
+    setAmountError(false);
   };
 
   const handleOrderClick = (side: OrderSide) => {
     if (!isConnected) { onConnect(); return; }
-    if (xauAmount <= 0) return;
+    
+    let hasErr = false;
+    
+    // Validate Amount for all modes
+    if (!amount || parseFloat(amount) <= 0) {
+      setAmountError(true);
+      hasErr = true;
+    }
+    
+    // Validate Price only for Limit mode
+    if (type === OrderType.LIMIT && (!price || parseFloat(price) <= 0)) {
+      setPriceError(true);
+      hasErr = true;
+    }
+
+    if (hasErr) return;
+
     onOrder(side, type, xauAmount, effectivePrice, leverage, marginMode);
     setAmount('');
     setSliderValue(0);
+    setPriceError(false);
+    setAmountError(false);
   };
 
   const InfoRow = ({ label, value, color }: { label: string, value: string, color?: string }) => (
@@ -109,13 +142,23 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
       </div>
 
       <div className="flex bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded p-0.5 mb-4">
-        <button onClick={() => setType(OrderType.MARKET)} className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${type === OrderType.MARKET ? 'bg-slate-500 text-white shadow' : 'text-gray-500'}`}>{t.market}</button>
+        <button onClick={() => {setType(OrderType.MARKET); setPriceError(false);}} className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${type === OrderType.MARKET ? 'bg-slate-500 text-white shadow' : 'text-gray-500'}`}>{t.market}</button>
         <button onClick={() => setType(OrderType.LIMIT)} className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${type === OrderType.LIMIT ? 'bg-slate-500 text-white shadow' : 'text-gray-500'}`}>{t.limit}</button>
       </div>
 
       <div className="mb-3">
         <div className="text-xs text-gray-500 mb-1">{t.price}</div>
-        <input type={type === OrderType.LIMIT ? "number" : "text"} value={type === OrderType.LIMIT ? price : ""} onChange={(e) => setPrice(e.target.value)} disabled={type === OrderType.MARKET} placeholder={type === OrderType.MARKET ? `${t.market} ${t.price}` : lastPrice.toFixed(2)} className="w-full bg-transparent border border-gray-200 dark:border-slate-700 rounded p-2.5 text-sm font-mono outline-none dark:text-white" />
+        <input 
+          type={type === OrderType.LIMIT ? "number" : "text"} 
+          value={type === OrderType.LIMIT ? price : ""} 
+          onChange={(e) => {
+            setPrice(e.target.value);
+            setPriceError(false);
+          }} 
+          disabled={type === OrderType.MARKET} 
+          placeholder={type === OrderType.MARKET ? `${t.market} ${t.price}` : lastPrice.toFixed(2)} 
+          className={`w-full bg-transparent border rounded p-2.5 text-sm font-mono outline-none dark:text-white transition-all ${priceError ? 'border-red-500 ring-1 ring-red-500/20 shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'border-gray-200 dark:border-slate-700'}`} 
+        />
       </div>
 
       <div className="mb-1">
@@ -124,7 +167,16 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
           <span className="text-gray-500">{t.avail}: <span className="font-mono">{availableBalance.toFixed(2)} USDC</span></span>
         </div>
         <div className="relative flex items-center">
-          <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-transparent border border-gray-300 dark:border-slate-600 rounded p-2.5 pr-24 text-sm font-bold font-mono outline-none dark:text-white" placeholder="0.00" />
+          <input 
+            type="number" 
+            value={amount} 
+            onChange={(e) => {
+              setAmount(e.target.value);
+              setAmountError(false);
+            }} 
+            className={`w-full bg-transparent border rounded p-2.5 pr-24 text-sm font-bold font-mono outline-none dark:text-white transition-all ${amountError ? 'border-red-500 ring-1 ring-red-500/20 shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'border-gray-300 dark:border-slate-600'}`} 
+            placeholder="0.00" 
+          />
           <button 
             onClick={() => setUnit(u => u === 'ASSET' ? 'USDC' : 'ASSET')}
             className="absolute right-0 h-full flex items-center pr-2 group"
@@ -147,7 +199,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
           <div className="px-1 space-y-1">
              <InfoRow label={t.liqPrice} value={calcLiqPrice(OrderSide.BUY)} color="text-trade-up" />
              <InfoRow label={t.margin} value={marginReq.toFixed(2)} color="text-trade-up" />
-             <InfoRow label={t.maxOpen} value={`${(maxOpenUSDC / effectivePrice).toFixed(2)} ${assetSymbol}`} color="text-trade-up" />
+             <InfoRow label={t.maxOpen} value={`${(maxOpenUSDC / (effectivePrice || 1)).toFixed(2)} ${assetSymbol}`} color="text-trade-up" />
              <InfoRow label={t.estFee} value={`${estFee.toFixed(2)} USDC`} color="text-trade-up" />
           </div>
         </div>
@@ -156,7 +208,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
           <div className="px-1 space-y-1">
              <InfoRow label={t.liqPrice} value={calcLiqPrice(OrderSide.SELL)} color="text-trade-down" />
              <InfoRow label={t.margin} value={marginReq.toFixed(2)} color="text-trade-down" />
-             <InfoRow label={t.maxOpen} value={`${(maxOpenUSDC / effectivePrice).toFixed(2)} ${assetSymbol}`} color="text-trade-down" />
+             <InfoRow label={t.maxOpen} value={`${(maxOpenUSDC / (effectivePrice || 1)).toFixed(2)} ${assetSymbol}`} color="text-trade-down" />
              <InfoRow label={t.estFee} value={`${estFee.toFixed(2)} USDC`} color="text-trade-down" />
           </div>
         </div>

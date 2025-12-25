@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MOCK_ASKS, MOCK_BIDS, TRANSLATIONS, INITIAL_MARKET_DATA } from '../constants';
 import { Language } from '../types';
@@ -6,15 +7,19 @@ import { ArrowUp, ArrowDown } from 'lucide-react';
 interface OrderBookProps {
   lang: Language;
   lastPrice: number;
+  onPriceClick?: (price: number) => void;
 }
 
-const Row = ({ price, amount, total, type }: { price: number, amount: string, total: string, type: 'ask' | 'bid' }) => {
+const Row = ({ price, amount, total, type, onPriceClick }: { price: number, amount: string, total: string, type: 'ask' | 'bid', onPriceClick?: (p: number) => void }) => {
   const bgClass = type === 'ask' ? 'bg-trade-down' : 'bg-trade-up';
   const textClass = type === 'ask' ? 'text-trade-down' : 'text-trade-up';
   const width = Math.min(parseFloat(total) * 1, 100); 
 
   return (
-    <div className="grid grid-cols-3 text-[11px] py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors relative group items-center">
+    <div 
+      onClick={() => onPriceClick?.(price)}
+      className="grid grid-cols-3 text-[11px] py-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors relative group items-center"
+    >
       <div 
         className={`absolute top-0 right-0 h-full opacity-10 transition-all duration-300 ${bgClass}`} 
         style={{ width: `${width}%` }} 
@@ -26,7 +31,7 @@ const Row = ({ price, amount, total, type }: { price: number, amount: string, to
   );
 };
 
-export const OrderBook: React.FC<OrderBookProps> = ({ lang, lastPrice: initialLastPrice }) => {
+export const OrderBook: React.FC<OrderBookProps> = ({ lang, lastPrice: initialLastPrice, onPriceClick }) => {
   const t = TRANSLATIONS[lang];
   const [tab, setTab] = useState<'book' | 'trades'>('book');
   const [asks, setAsks] = useState(MOCK_ASKS);
@@ -110,7 +115,7 @@ export const OrderBook: React.FC<OrderBookProps> = ({ lang, lastPrice: initialLa
             <div className="flex flex-col justify-end overflow-hidden">
               {/* 增加至 9 档 */}
               {asks.slice(0, 9).map((ask, i) => (
-                <Row key={`ask-${i}`} {...ask} price={ask.price} type="ask" />
+                <Row key={`ask-${i}`} {...ask} price={ask.price} type="ask" onPriceClick={onPriceClick} />
               ))}
             </div>
             
@@ -125,14 +130,18 @@ export const OrderBook: React.FC<OrderBookProps> = ({ lang, lastPrice: initialLa
             <div className="overflow-hidden">
                {/* 增加至 9 档 */}
                {bids.slice(0, 9).map((bid, i) => (
-                <Row key={`bid-${i}`} {...bid} price={bid.price} type="bid" />
+                <Row key={`bid-${i}`} {...bid} price={bid.price} type="bid" onPriceClick={onPriceClick} />
               ))}
             </div>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto hide-scrollbar">
              {trades.map((trade) => (
-               <div key={trade.id} className="grid grid-cols-3 text-[11px] py-1 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors px-2">
+               <div 
+                key={trade.id} 
+                onClick={() => onPriceClick?.(trade.price)}
+                className="grid grid-cols-3 text-[11px] py-1 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors px-2"
+              >
                  <div className={`text-left font-mono font-bold ${trade.side === 'BUY' ? 'text-trade-up' : 'text-trade-down'}`}>
                    {trade.price.toFixed(2)}
                  </div>

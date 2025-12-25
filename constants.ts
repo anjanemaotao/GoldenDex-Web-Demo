@@ -80,6 +80,8 @@ export const MOCK_MARKETS: MarketData[] = [
 
 export const TRANSLATIONS = {
   'en': {
+    swap: 'Swap',
+    selectToken: 'Select Token',
     search: 'Search',
     marketName: 'Market',
     connectWallet: 'Connect Wallet',
@@ -208,6 +210,10 @@ export const TRANSLATIONS = {
     adjustLeverage: 'Adjust Leverage',
     cancelOrder: 'Cancel',
     modifyEmail: 'Modify Email',
+    approvingToken: 'Approving {token}...',
+    swappingToken: 'Swapping...',
+    withdrawingToken: 'Withdrawing...',
+    depositingToVault: 'Depositing to Vault...',
     fundingDetail: {
       interval: 'Interval',
       direction: 'Payment Direction',
@@ -237,6 +243,8 @@ export const TRANSLATIONS = {
     }
   },
   'zh-CN': {
+    swap: '闪兑',
+    selectToken: '选择币种',
     search: '搜索',
     marketName: '合约',
     connectWallet: '连接钱包',
@@ -365,6 +373,10 @@ export const TRANSLATIONS = {
     adjustLeverage: '杠杆调整',
     cancelOrder: '取消',
     modifyEmail: '修改邮箱',
+    approvingToken: '正在授权 {token}...',
+    swappingToken: '闪兑中...',
+    withdrawingToken: '提现中...',
+    depositingToVault: '正在存入金库...',
     fundingDetail: {
       interval: '收费间隔',
       direction: '支付方向',
@@ -394,6 +406,8 @@ export const TRANSLATIONS = {
     }
   },
   'zh-TW': {
+    swap: '閃兌',
+    selectToken: '選擇幣種',
     search: '搜索',
     marketName: '合約',
     connectWallet: '連接錢包',
@@ -467,7 +481,7 @@ export const TRANSLATIONS = {
     estPnl: '預估盈虧',
     heldAmount: '持倉數量',
     long: '多頭',
-    short: '空頭',
+    short: '空头',
     nominalValue: '名義價值',
     accountBalance: '賬戶餘額',
     viewOnExplorer: '在瀏覽器中查看',
@@ -522,6 +536,10 @@ export const TRANSLATIONS = {
     adjustLeverage: '槓桿調整',
     cancelOrder: '取消',
     modifyEmail: '修改郵箱',
+    approvingToken: '正在授權 {token}...',
+    swappingToken: '閃兌中...',
+    withdrawingToken: '提現中...',
+    depositingToVault: '正在存入金庫...',
     fundingDetail: {
       interval: '收費間隔',
       direction: '支付方向',
@@ -539,14 +557,14 @@ export const TRANSLATIONS = {
       volume24h: '過去 24 小时内成交的总合約數量和對應的名義價值（USDC）。',
       openInterest: '當前市場上所有未平倉的合約總持倉量名義價值。',
       totalValue: '持倉總價值是您賬戶中所有資产的總和，包含錢包餘額和當前所有未實現盈亏。',
-      unrealized: '未實現盈虧是基於標記價格計算的當前所有持倉的浮動盈利或虧損。',
+      unrealized: '未實現盈虧是基於標記價格計算的當前所有持仓的浮動盈利或虧損。',
       marginRatio: '保證金比率 = (維持保證金 / 保證金餘額) * 100%。當該比例達到 100% 時，將觸發強制平倉。',
       maintMargin: '維持當前倉位所需的最低保證金金額。',
       marginBalance: '賬戶中可用於支持倉位的總權益（賬戶餘額 + 未實現盈虧）。',
       nominalValue: '名義價值 = 持仓量 * 標記價格，代表了當前倉位的總市場敞口。',
       entryPrice: '該倉位開倉時的加權平均價格。',
       liqPrice: '當標記價格觸及此價格時，該倉位將被系統強制接管並平仓。',
-      margin: '當前倉位鎖定的本金部分，用於承擔潛在虧損。',
+      margin: '當前倉位鎖定的本金部分，用於承担潜在亏损。',
       unrealizedPnl: '當前持倉的浮動盈利或虧損，以及對應本金的回報率（ROI）。'
     }
   }
