@@ -21,23 +21,35 @@ const MOCK_WALLET_BALANCES: Record<string, number> = {
   USDT: 4210.50,
 };
 
-// Redesigned high-quality SVGs for Metamask and OKX
+// Replaced fixed Logo components with IMG tags using specified URLs
 const MetaMaskLogo = () => (
-  <svg width="24" height="24" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
-    <path d="M239.31 16.711l-94.864 73.19 19.344 26.685 75.52-60.912v-.235l-2.73-3.181-.271-3.64.24-4.814-11.239-17.093z" fill="#e2761b"/><path d="M16.69 16.711l94.864 73.19-19.344 26.685-75.52-60.912v-.235l2.73-3.181.271-3.64-.24-4.814-11.239-17.093z" fill="#e4761b"/><path d="M205.5 174.5l-33.5 17.5-31.5-12.5-3.5-37.5 10.5-23.5 35.5 15.5 22.5 40.5z" fill="#d7c1b3"/><path d="M50.5 174.5l33.5 17.5 31.5-12.5 3.5-37.5-10.5-23.5-35.5 15.5-22.5 40.5z" fill="#d7c1b3"/><path d="M128 239.31l-34.864-32.19 12.344-12.685 22.52 16.912 22.52-16.912 12.344 12.685L128 239.31z" fill="#233447"/><path d="M128 128l32 32-32 48-32-48 32-32z" fill="#161616"/>
-  </svg>
+  <img 
+    src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" 
+    className="w-6 h-6 object-contain" 
+    alt="MetaMask" 
+  />
 );
 const OKXLogo = () => (
-  <svg width="24" height="24" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <rect width="100" height="100" rx="20" fill="black"/>
-    <rect x="20" y="20" width="25" height="25" fill="white"/>
-    <rect x="20" y="55" width="25" height="25" fill="white"/>
-    <rect x="55" y="20" width="25" height="25" fill="white"/>
-    <rect x="55" y="55" width="25" height="25" fill="white"/>
-  </svg>
+  <img 
+    src="https://s2.coinmarketcap.com/static/img/exchanges/64x64/294.png" 
+    className="w-6 h-6 object-contain rounded-full" 
+    alt="OKX" 
+  />
 );
-const BinanceLogo = () => <img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.svg" className="w-6 h-6" alt="binance" />;
-const WalletConnectLogo = () => <img src="https://avatars.githubusercontent.com/u/37784886" className="w-6 h-6" alt="wc" />;
+const BinanceLogo = () => (
+  <img 
+    src="https://cryptologos.cc/logos/binance-coin-bnb-logo.svg?v=024" 
+    className="w-6 h-6 object-contain" 
+    alt="Binance" 
+  />
+);
+const WalletConnectLogo = () => (
+  <img 
+    src="https://raw.githubusercontent.com/WalletConnect/walletconnect-assets/master/Logo/Blue%20(Default)/Logo.svg" 
+    className="w-6 h-6 object-contain" 
+    alt="WalletConnect" 
+  />
+);
 
 const ArbitrumLogo = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -252,6 +264,8 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
   const [tokenSelectorOpen, setTokenSelectorOpen] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [processingState, setProcessingState] = useState<null | 'approving' | 'swapping' | 'depositing' | 'withdrawing'>(null);
+  const [slippage, setSlippage] = useState(0.5);
+  const [customSlippage, setCustomSlippage] = useState('');
   const selectorRef = useRef<HTMLDivElement>(null);
 
   const tokens = ['USDC', 'ETH', 'ARB', 'USDT'];
@@ -284,28 +298,23 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
 
     if (type === 'deposit') {
       // Simulation steps for Deposit
-      // 1. Approving (Skip for ETH)
       if (selectedToken !== 'ETH') {
         setProcessingState('approving');
         await new Promise(r => setTimeout(r, 1500));
       }
       
-      // 2. Swapping (Only for non-USDC tokens)
       if (selectedToken !== 'USDC') {
         setProcessingState('swapping');
         await new Promise(r => setTimeout(r, 1500));
       }
 
-      // 3. Depositing (Always)
       setProcessingState('depositing');
       await new Promise(r => setTimeout(r, 1500));
     } else {
-      // Simulation steps for Withdrawal
       setProcessingState('withdrawing');
       await new Promise(r => setTimeout(r, 2000));
     }
 
-    // Pass the actual USDC value for confirmations/notifications
     onConfirm(actualReceivedUSDC);
     setAmount('');
     setVal(0);
@@ -337,18 +346,10 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
   }, []);
 
   const getButtonText = () => {
-    if (processingState === 'approving') {
-      return t.approvingToken.replace('{token}', selectedToken);
-    }
-    if (processingState === 'swapping') {
-      return t.swappingToken;
-    }
-    if (processingState === 'withdrawing') {
-      return t.withdrawingToken;
-    }
-    if (processingState === 'depositing') {
-      return t.depositingToVault;
-    }
+    if (processingState === 'approving') return t.approvingToken.replace('{token}', selectedToken);
+    if (processingState === 'swapping') return t.swappingToken;
+    if (processingState === 'withdrawing') return t.withdrawingToken;
+    if (processingState === 'depositing') return t.depositingToVault;
     if (isQuickSwap) return t.swap;
     return t.confirm;
   };
@@ -356,7 +357,7 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
   return (
     <BaseModal isOpen={isOpen} onClose={onClose} title={type === 'deposit' ? t.deposit : t.withdraw}>
       <div className="space-y-5">
-        {/* Network (Always on top now) */}
+        {/* Network */}
         <div className="space-y-2">
           <div className="text-xs font-bold text-gray-500 uppercase">{t.network}</div>
           <div className="flex items-center justify-between border border-gray-200 dark:border-slate-700 p-2.5 rounded bg-gray-50 dark:bg-slate-800/50">
@@ -364,12 +365,6 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
                <ArbitrumLogo />
                <span className="font-bold text-sm dark:text-white">Arbitrum</span>
              </div>
-             {isQuickSwap && (
-               <div className="flex items-center space-x-1 text-[10px] bg-brand-500/10 text-brand-500 px-2 py-0.5 rounded font-black">
-                 <Info size={10} />
-                 <span>Auto-Swap to USDC</span>
-               </div>
-             )}
           </div>
         </div>
 
@@ -385,6 +380,12 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
               <div className="flex items-center space-x-3">
                 {TokenIcons[selectedToken]}
                 <span className="font-bold">{selectedToken}</span>
+                {isQuickSwap && (
+                  <div className="flex items-center space-x-1 text-[10px] bg-brand-500/10 text-brand-500 px-2 py-0.5 rounded font-black ml-1">
+                    <Info size={10} />
+                    <span>Auto-Swap to USDC</span>
+                  </div>
+                )}
               </div>
               <ChevronDown size={18} className={`transition-transform ${tokenSelectorOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -426,7 +427,7 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
            </div>
         )}
 
-        {/* Amount Section */}
+        {/* Amount */}
         <div className="space-y-2">
           <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
             <span>{t.amount}</span>
@@ -449,16 +450,51 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
           <div className={`pt-2 ${processingState ? 'pointer-events-none opacity-50' : ''}`}><CustomSlider value={val} onChange={handleSlider} theme={theme} /></div>
         </div>
 
-        {/* Tips / Fee Section */}
+        {/* Slippage & Estimation */}
         {type === 'deposit' ? (
-           <div className="space-y-1">
-             <p className="text-[10px] text-gray-500 leading-tight">
-               {isQuickSwap 
-                 ? (lang === 'en' ? 'Quick Swap uses decentralized aggregators to convert your deposit to USDC.' : '闪兑功能将通过去中心化聚合器自动将您的充值转换为 USDC。') 
-                 : t.depositTips}
+           <div className="space-y-3">
+             {isQuickSwap && (
+                <div className="p-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg animate-in slide-in-from-top-2">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[11px] font-bold text-gray-500 uppercase flex items-center space-x-1">
+                      <Settings size={10} />
+                      <span>{t.slippage}</span>
+                    </span>
+                    <span className="text-[11px] font-bold text-brand-500">{slippage}%</span>
+                  </div>
+                  <div className="flex space-x-2">
+                    {[0.1, 0.5, 1.0].map(v => (
+                      <button 
+                        key={v}
+                        onClick={() => { setSlippage(v); setCustomSlippage(''); }}
+                        className={`flex-1 py-1 text-[11px] font-bold rounded border transition-all ${slippage === v && !customSlippage ? 'bg-brand-500/10 border-brand-500 text-brand-500' : 'border-gray-200 dark:border-slate-700 text-gray-500'}`}
+                      >
+                        {v}%
+                      </button>
+                    ))}
+                    <div className="flex-[1.5] relative">
+                      <input 
+                        type="number"
+                        value={customSlippage}
+                        onChange={e => {
+                           setCustomSlippage(e.target.value);
+                           setSlippage(parseFloat(e.target.value) || 0.5);
+                        }}
+                        placeholder={t.custom}
+                        className={`w-full py-1 px-2 text-[11px] font-bold rounded border bg-transparent outline-none transition-all ${customSlippage ? 'border-brand-500 text-brand-500' : 'border-gray-200 dark:border-slate-700 text-gray-500 placeholder:text-gray-600'}`}
+                      />
+                      <span className="absolute right-2 top-1 text-[10px] text-gray-500">%</span>
+                    </div>
+                  </div>
+                </div>
+             )}
+
+             <p className="text-[10px] text-gray-500 leading-tight px-1">
+               {isQuickSwap ? (lang === 'en' ? 'Quick Swap uses aggregators to convert your deposit to USDC. Slippage protects you from unexpected price movements.' : '闪兑功能将通过聚合器自动将您的充值转换为 USDC。滑点设置可防止因价格剧烈波动导致交易失败。') : t.depositTips}
              </p>
+
              {isQuickSwap && numAmount > 0 && (
-                <div className="flex justify-between items-center bg-brand-500/5 p-2 rounded border border-brand-500/20 mt-2">
+                <div className="flex justify-between items-center bg-brand-500/5 p-2 rounded border border-brand-500/20">
                   <span className="text-[11px] font-bold text-gray-500">{lang === 'en' ? 'Est. Received' : '预估到账'}</span>
                   <span className="font-mono text-xs font-bold text-brand-500">
                     ≈ {actualReceivedUSDC.toFixed(2)} USDC
@@ -467,13 +503,12 @@ export const AssetModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
              )}
            </div>
         ) : (
-           <div className="space-y-1 pt-1">
+           <div className="space-y-1 pt-1 px-1">
               <div className="flex justify-between text-xs text-gray-500"><span>{t.withdrawFee}</span><span className="text-red-400">0.5 USDC</span></div>
               <div className="flex justify-between text-xs text-gray-500 font-bold"><span>{t.actualAmount}</span><span className="text-green-500 font-mono">{actualAmount.toFixed(2)} USDC</span></div>
            </div>
         )}
 
-        {/* Footer Buttons */}
         <div className="grid grid-cols-2 gap-4 pt-2">
            <button onClick={onClose} disabled={!!processingState} className={`py-2.5 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded transition-all ${processingState ? 'opacity-50 cursor-not-allowed' : ''}`}>{t.cancel}</button>
            <button 

@@ -11,6 +11,7 @@ import { NotificationContainer, RichNotification } from './components/Notificati
 import { WalletModal, AssetModal, MarginManageModal, SignatureModal, SettingsModal, EmailModal } from './components/Modals';
 import { INITIAL_MARKET_DATA, MOCK_POSITIONS, TRANSLATIONS, INITIAL_ACCOUNT_INFO, MOCK_ASSETS_HISTORY } from './constants';
 import { Language, Theme, MarketData, Position, Order, OrderSide, OrderType, MarginMode, AccountInfo as AccountInfoType } from './types';
+import { Volume2 } from 'lucide-react';
 
 export default function App() {
   const [lang, setLang] = useState<Language>('zh-CN');
@@ -158,6 +159,17 @@ export default function App() {
         onWithdraw={() => setAssetModal({ isOpen: true, type: 'withdraw' })}
         onDisconnect={() => { setIsConnected(false); setIsSigned(false); setPositions([]); setOrders([]); }}
       />
+      
+      {/* Broadcast Banner - Optimized for both light and dark themes */}
+      <div className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 px-4 py-2 flex items-center shrink-0 z-40 border-b border-amber-200 dark:border-amber-900/50">
+        <Volume2 size={16} className="mr-3 shrink-0 text-amber-500 dark:text-amber-400" />
+        <p className="text-sm font-semibold tracking-wide">
+          {lang === 'en' 
+            ? 'Predict gold trends · Seize the next market movement, next-gen gold prediction market >>'
+            : (lang === 'zh-CN' ? '预测金价走势 · 抢占下一个黄金行情，新一代黄金预测市场>>' : '預測金價走勢 · 搶佔下一個黃金行情，新一代黃金預測市場>>')}
+        </p>
+      </div>
+
       <MarketStats data={marketData} lang={lang} onMarketSelect={setMarketData} />
       <main className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0">
