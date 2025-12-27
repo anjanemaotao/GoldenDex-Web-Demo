@@ -77,9 +77,12 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
         
-        <nav className="flex items-center h-14">
+        <nav className="flex items-center h-14 space-x-6">
           <button className="px-1 h-full flex items-center text-sm font-bold text-brand-500 border-b-2 border-brand-500 transition-colors whitespace-nowrap">
             {t.perp}
+          </button>
+          <button className="px-1 h-full flex items-center text-sm font-bold text-gray-500 hover:text-brand-500 border-b-2 border-transparent hover:border-brand-500/50 transition-colors whitespace-nowrap cursor-default">
+            {t.predictionMarket}
           </button>
         </nav>
       </div>

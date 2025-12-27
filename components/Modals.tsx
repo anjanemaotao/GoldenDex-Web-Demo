@@ -214,6 +214,8 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; lan
          <div className="space-y-4">
             <div className="flex items-center justify-between"><span className="text-sm font-medium dark:text-white">{t.orderConfirm}</span><div className="flex justify-end"><Toggle active={switches.confirm} onToggle={() => setSwitches(s => ({...s, confirm: !s.confirm}))} /></div></div>
             <div className="flex items-center justify-between"><span className="text-sm font-medium dark:text-white">{t.popupNotify}</span><div className="flex justify-end"><Toggle active={switches.notify} onToggle={() => setSwitches(s => ({...s, notify: !s.notify}))} /></div></div>
+            {/* Email Notifications section hidden per user request */}
+            {/* 
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium dark:text-white">{t.emailNotify}</span>
               <div className="flex items-center space-x-2">
@@ -228,6 +230,7 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; lan
                 )}
               </div>
             </div>
+            */}
          </div>
          <button onClick={onClose} className="w-full py-3 bg-[#DCA85E] text-slate-900 font-bold rounded-lg shadow-lg hover:bg-[#c99750] transition">{t.confirm}</button>
       </div>
