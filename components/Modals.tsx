@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Language, WalletProvider, Theme, Position } from '../types';
+import { Language, WalletProvider, Theme, Position, OrderSide, OrderType, MarginMode } from '../types';
 import { TRANSLATIONS, INITIAL_ACCOUNT_INFO } from '../constants';
 import { X, Copy, ExternalLink, LogOut, Settings, Check, ArrowRightIcon, ShieldCheck, Mail, Loader2, Info, ChevronDown } from 'lucide-react';
 import { CustomSlider } from './TradeForm';
@@ -186,10 +186,17 @@ export const EmailModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: 
   );
 };
 
-export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; lang: Language; isEmailBound: boolean; onBindClick: () => void }> = ({ isOpen, onClose, lang, isEmailBound, onBindClick }) => {
+export const SettingsModal: React.FC<{ 
+  isOpen: boolean; 
+  onClose: () => void; 
+  lang: Language; 
+  isEmailBound: boolean; 
+  onBindClick: () => void;
+  settings: { confirm: boolean; notify: boolean };
+  onSettingsChange: (s: { confirm: boolean; notify: boolean }) => void;
+}> = ({ isOpen, onClose, lang, isEmailBound, onBindClick, settings, onSettingsChange }) => {
   const t = TRANSLATIONS[lang];
   const [posMode, setPosMode] = useState('hedge');
-  const [switches, setSwitches] = useState({ confirm: true, notify: true, email: false });
 
   const Toggle = ({ active, onToggle, disabled = false }: { active: boolean; onToggle: () => void, disabled?: boolean }) => (
     <div 
@@ -212,25 +219,18 @@ export const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; lan
             </div>
          </div>
          <div className="space-y-4">
-            <div className="flex items-center justify-between"><span className="text-sm font-medium dark:text-white">{t.orderConfirm}</span><div className="flex justify-end"><Toggle active={switches.confirm} onToggle={() => setSwitches(s => ({...s, confirm: !s.confirm}))} /></div></div>
-            <div className="flex items-center justify-between"><span className="text-sm font-medium dark:text-white">{t.popupNotify}</span><div className="flex justify-end"><Toggle active={switches.notify} onToggle={() => setSwitches(s => ({...s, notify: !s.notify}))} /></div></div>
-            {/* Email Notifications section hidden per user request */}
-            {/* 
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium dark:text-white">{t.emailNotify}</span>
-              <div className="flex items-center space-x-2">
-                {isEmailBound && (
-                  <button onClick={onBindClick} className="text-brand-500 text-[10px] font-bold hover:underline">{t.modifyEmail}</button>
-                )}
-                <div className="flex justify-end">
-                  <Toggle active={switches.email} onToggle={() => setSwitches(s => ({...s, email: !s.email}))} disabled={!isEmailBound} />
-                </div>
-                {!isEmailBound && (
-                  <button onClick={onBindClick} className="bg-brand-500 text-slate-900 text-[10px] font-bold px-2 py-1 rounded hover:bg-brand-600 transition">{t.bindEmail}</button>
-                )}
+              <span className="text-sm font-medium dark:text-white">{t.orderConfirm}</span>
+              <div className="flex justify-end">
+                <Toggle active={settings.confirm} onToggle={() => onSettingsChange({ ...settings, confirm: !settings.confirm })} />
               </div>
             </div>
-            */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium dark:text-white">{t.popupNotify}</span>
+              <div className="flex justify-end">
+                <Toggle active={settings.notify} onToggle={() => onSettingsChange({ ...settings, notify: !settings.notify })} />
+              </div>
+            </div>
          </div>
          <button onClick={onClose} className="w-full py-3 bg-[#DCA85E] text-slate-900 font-bold rounded-lg shadow-lg hover:bg-[#c99750] transition">{t.confirm}</button>
       </div>
@@ -256,6 +256,103 @@ export const WalletModal: React.FC<{ isOpen: boolean; onClose: () => void; lang:
         ))}
       </div>
     </BaseModal>
+  );
+};
+
+export const OrderConfirmModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  lang: Language;
+  theme: Theme;
+  orderData: {
+    symbol: string;
+    side: OrderSide;
+    type: OrderType;
+    size: number;
+    price: number;
+    leverage: number;
+  };
+  onConfirm: (dontShowAgain: boolean) => void;
+}> = ({ isOpen, onClose, lang, orderData, onConfirm }) => {
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const t = TRANSLATIONS[lang];
+
+  if (!isOpen) return null;
+
+  const isBuy = orderData.side === OrderSide.BUY;
+  const directionText = isBuy 
+    ? (lang === 'zh-CN' ? '买入/做多' : (lang === 'en' ? 'Buy/Long' : '買入/做多'))
+    : (lang === 'zh-CN' ? '卖出/做空' : (lang === 'en' ? 'Sell/Short' : '賣出/做空'));
+
+  const priceText = orderData.type === OrderType.MARKET 
+    ? (lang === 'zh-CN' ? '市价' : (lang === 'en' ? 'Market' : '市價'))
+    : orderData.price.toFixed(2);
+
+  return (
+    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-[360px] bg-white dark:bg-dark-card border border-gray-200 dark:border-slate-700 rounded shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-800">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            {lang === 'zh-CN' ? '订单确认' : (lang === 'en' ? 'Order Confirmation' : '訂單確認')}
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition">
+            <X size={18} />
+          </button>
+        </div>
+        
+        <div className="p-5 space-y-4">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500 font-medium">{lang === 'zh-CN' ? '合约' : (lang === 'en' ? 'Contract' : '合約')}</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">{orderData.symbol}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500 font-medium">{lang === 'zh-CN' ? '方向' : (lang === 'en' ? 'Side' : '方向')}</span>
+            <span className={`text-sm font-bold ${isBuy ? 'text-trade-up' : 'text-trade-down'}`}>{directionText}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500 font-medium">{lang === 'zh-CN' ? '杠杆' : (lang === 'en' ? 'Leverage' : '杠杆')}</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">{orderData.leverage}X</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500 font-medium">{lang === 'zh-CN' ? '数量' : (lang === 'en' ? 'Amount' : '數量')}</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">{(orderData.size * (orderData.type === OrderType.MARKET ? 2845 : orderData.price)).toLocaleString()} USDC</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500 font-medium">{lang === 'zh-CN' ? '价格' : (lang === 'en' ? 'Price' : '價格')}</span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">{priceText}</span>
+          </div>
+
+          <div className="flex items-center pt-2 pb-1">
+            <div 
+              className="flex items-center space-x-2 cursor-pointer group select-none"
+              onClick={() => setDontShowAgain(!dontShowAgain)}
+            >
+              <div className={`w-4 h-4 border rounded transition-colors flex items-center justify-center ${dontShowAgain ? 'bg-brand-500 border-brand-500' : 'border-gray-300 dark:border-slate-600'}`}>
+                {dontShowAgain && <Check size={12} className="text-white" />}
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                {lang === 'zh-CN' ? '不再提示' : (lang === 'en' ? 'Do not show again' : '不再提示')}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <button 
+              onClick={onClose} 
+              className="py-3 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded text-sm transition shadow-sm"
+            >
+              {lang === 'zh-CN' ? '取消' : (lang === 'en' ? 'Cancel' : '取消')}
+            </button>
+            <button 
+              onClick={() => onConfirm(dontShowAgain)} 
+              className="py-3 bg-[#8B5E14] hover:bg-[#7a5212] text-white font-bold rounded text-sm transition shadow-md"
+            >
+              {lang === 'zh-CN' ? '确定' : (lang === 'en' ? 'Confirm' : '確定')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

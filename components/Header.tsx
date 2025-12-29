@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Language, Theme } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { Moon, Sun, Globe, Wallet, Settings, ChevronDown, Plus } from 'lucide-react';
-import { AccountPopover, SettingsModal, EmailModal } from './Modals';
+import { AccountPopover } from './Modals';
 
 interface HeaderProps {
   lang: Language;
@@ -15,6 +15,7 @@ interface HeaderProps {
   onDeposit: () => void;
   onWithdraw: () => void;
   onDisconnect: () => void;
+  onSettingsClick: () => void;
 }
 
 const FallbackLogo = () => (
@@ -32,14 +33,11 @@ const FallbackLogo = () => (
 );
 
 export const Header: React.FC<HeaderProps> = ({ 
-  lang, setLang, theme, setTheme, isConnected, onConnectClick, onDeposit, onWithdraw, onDisconnect 
+  lang, setLang, theme, setTheme, isConnected, onConnectClick, onDeposit, onWithdraw, onDisconnect, onSettingsClick
 }) => {
   const t = TRANSLATIONS[lang];
   const [langOpen, setLangOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [isEmailBound, setIsEmailBound] = useState(false);
-  const [emailOpen, setEmailOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -138,22 +136,9 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
           <button onClick={toggleTheme} className="text-gray-500 border border-gray-200 dark:border-slate-700 p-2 h-[38px] w-[38px] flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 hover:border-brand-500 transition">{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button>
-          <button onClick={() => setSettingsOpen(true)} className="text-gray-500 border border-gray-200 dark:border-slate-700 p-2 h-[38px] w-[38px] flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 hover:border-brand-500 transition"><Settings size={18} /></button>
+          <button onClick={onSettingsClick} className="text-gray-500 border border-gray-200 dark:border-slate-700 p-2 h-[38px] w-[38px] flex items-center justify-center rounded-lg bg-white dark:bg-slate-800 hover:border-brand-500 transition"><Settings size={18} /></button>
         </div>
       </div>
-      <SettingsModal 
-        isOpen={settingsOpen} 
-        onClose={() => setSettingsOpen(false)} 
-        lang={lang} 
-        isEmailBound={isEmailBound} 
-        onBindClick={() => setEmailOpen(true)} 
-      />
-      <EmailModal 
-        isOpen={emailOpen} 
-        onClose={() => setEmailOpen(false)} 
-        lang={lang} 
-        onBind={() => { setIsEmailBound(true); setEmailOpen(false); }} 
-      />
     </header>
   );
 };

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Header } from './components/Header';
 import { MarketStats } from './components/MarketStats';
 import { CandleChart } from './components/CandleChart';
@@ -8,7 +8,7 @@ import { TradeForm } from './components/TradeForm';
 import { PositionTable } from './components/PositionTable';
 import { AccountInfo } from './components/AccountInfo';
 import { NotificationContainer, RichNotification } from './components/Notification';
-import { WalletModal, AssetModal, MarginManageModal, SignatureModal, SettingsModal, EmailModal } from './components/Modals';
+import { WalletModal, AssetModal, MarginManageModal, SignatureModal, SettingsModal, EmailModal, OrderConfirmModal } from './components/Modals';
 import { INITIAL_MARKET_DATA, MOCK_POSITIONS, TRANSLATIONS, INITIAL_ACCOUNT_INFO, MOCK_ASSETS_HISTORY } from './constants';
 import { Language, Theme, MarketData, Position, Order, OrderSide, OrderType, MarginMode, AccountInfo as AccountInfoType } from './types';
 import { Volume2 } from 'lucide-react';
@@ -26,21 +26,36 @@ export default function App() {
   const [notifications, setNotifications] = useState<RichNotification[]>([]);
   const [accountInfo, setAccountInfo] = useState<AccountInfoType>(INITIAL_ACCOUNT_INFO);
 
+  // Global settings
+  const [settings, setSettings] = useState({ confirm: true, notify: true });
+
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showSignModal, setShowSignModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   
+  // Order Confirm State
+  const [pendingOrder, setPendingOrder] = useState<{
+    side: OrderSide;
+    type: OrderType;
+    size: number;
+    price: number;
+    leverage: number;
+    marginMode: MarginMode;
+  } | null>(null);
+
   const [assetModal, setAssetModal] = useState<{ isOpen: boolean, type: 'deposit' | 'withdraw' }>({ isOpen: false, type: 'deposit' });
   const [marginManage, setMarginManage] = useState<{ isOpen: boolean; type: 'add' | 'extract'; pos: Position | null }>({ isOpen: false, type: 'add', pos: null });
 
-  // State for populating price from OrderBook to TradeForm
   const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
 
-  const addRichNotification = (type: RichNotification['type'], title: string, message: string) => {
+  const addRichNotification = useCallback((type: RichNotification['type'], title: string, message: string) => {
+    // Only add if notify setting is enabled
+    if (!settings.notify) return;
+    
     const id = Date.now().toString();
     setNotifications(prev => [...prev, { id, type, title, message }]);
-  };
+  }, [settings.notify]);
 
   const handleConnectClick = () => {
     setShowWalletModal(true);
@@ -60,9 +75,8 @@ export default function App() {
     addRichNotification('success', title, body);
   };
 
-  const handleOrder = (side: OrderSide, type: OrderType, size: number, price: number, leverage: number, marginMode: MarginMode) => {
-    if (!isSigned) { setShowWalletModal(true); return; }
-    
+  // Final execution of the order
+  const executeOrder = (side: OrderSide, type: OrderType, size: number, price: number, leverage: number, marginMode: MarginMode) => {
     if (type === OrderType.MARKET) {
       const newPos: Position = { id: Date.now().toString(), symbol: marketData.symbol, side, size, entryPrice: price, markPrice: price, leverage, margin: (size * price) / leverage, marginMode, pnl: 0, pnlPercent: 0, liquidationPrice: side === OrderSide.BUY ? price * 0.8 : price * 1.2 };
       setPositions(prev => [newPos, ...prev]);
@@ -96,6 +110,16 @@ export default function App() {
     }
   };
 
+  const handleOrder = (side: OrderSide, type: OrderType, size: number, price: number, leverage: number, marginMode: MarginMode) => {
+    if (!isSigned) { setShowWalletModal(true); return; }
+    
+    if (settings.confirm) {
+      setPendingOrder({ side, type, size, price, leverage, marginMode });
+    } else {
+      executeOrder(side, type, size, price, leverage, marginMode);
+    }
+  };
+
   const handleClosePosition = (id: string, type: OrderType, closePrice?: number, closeAmount?: number) => {
     const pos = positions.find(p => p.id === id);
     if (!pos) return;
@@ -111,7 +135,6 @@ export default function App() {
   };
 
   const handleAssetConfirm = (type: 'deposit' | 'withdraw', v: number) => {
-     // Note: v is the USDC equivalent for Swap/Deposit, or requested amount for Withdraw
      const status = type === 'deposit' ? 'completed' : (v >= 100 ? 'reviewing' : 'completed');
      const newRecord = {
         id: Date.now().toString(),
@@ -158,9 +181,9 @@ export default function App() {
         onDeposit={() => setAssetModal({ isOpen: true, type: 'deposit' })}
         onWithdraw={() => setAssetModal({ isOpen: true, type: 'withdraw' })}
         onDisconnect={() => { setIsConnected(false); setIsSigned(false); setPositions([]); setOrders([]); }}
+        onSettingsClick={() => setShowSettingsModal(true)}
       />
       
-      {/* Broadcast Banner - Optimized for both light and dark themes */}
       <div className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 px-4 py-2 flex items-center shrink-0 z-40 border-b border-amber-200 dark:border-amber-900/50">
         <Volume2 size={16} className="mr-3 shrink-0 text-amber-500 dark:text-amber-400" />
         <p className="text-sm font-semibold tracking-wide">
@@ -220,7 +243,17 @@ export default function App() {
       
       <WalletModal isOpen={showWalletModal} onClose={() => setShowWalletModal(false)} lang={lang} onConnect={handleWalletSelect} />
       <SignatureModal isOpen={showSignModal} onClose={() => setShowSignModal(false)} lang={lang} onSign={handleSign} />
-      <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} lang={lang} isEmailBound={isEmailBound} onBindClick={() => setShowEmailModal(true)} />
+      
+      <SettingsModal 
+        isOpen={showSettingsModal} 
+        onClose={() => setShowSettingsModal(false)} 
+        lang={lang} 
+        isEmailBound={isEmailBound} 
+        onBindClick={() => setShowEmailModal(true)}
+        settings={settings}
+        onSettingsChange={setSettings}
+      />
+
       <EmailModal isOpen={showEmailModal} onClose={() => setShowEmailModal(false)} lang={lang} onBind={() => { setIsEmailBound(true); setShowEmailModal(false); }} />
 
       <AssetModal 
@@ -244,6 +277,26 @@ export default function App() {
               addRichNotification('success', lang === 'en' ? 'Margin Adjusted' : '保证金调整成功', `${marginManage.type === 'add' ? 'Added' : 'Removed'} ${v} USDC margin.`);
             }}
          />
+      )}
+
+      {pendingOrder && (
+        <OrderConfirmModal 
+          isOpen={true}
+          onClose={() => setPendingOrder(null)}
+          lang={lang}
+          theme={theme}
+          orderData={{
+            ...pendingOrder,
+            symbol: marketData.symbol
+          }}
+          onConfirm={(dontShowAgain) => {
+            if (dontShowAgain) {
+              setSettings(s => ({ ...s, confirm: false }));
+            }
+            executeOrder(pendingOrder.side, pendingOrder.type, pendingOrder.size, pendingOrder.price, pendingOrder.leverage, pendingOrder.marginMode);
+            setPendingOrder(null);
+          }}
+        />
       )}
     </div>
   );
