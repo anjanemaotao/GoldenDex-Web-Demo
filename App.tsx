@@ -26,7 +26,8 @@ export default function App() {
   const [notifications, setNotifications] = useState<RichNotification[]>([]);
   const [accountInfo, setAccountInfo] = useState<AccountInfoType>(INITIAL_ACCOUNT_INFO);
 
-  // Global settings
+  // Global UI States
+  const [marginMode, setMarginMode] = useState<MarginMode>(MarginMode.CROSS);
   const [settings, setSettings] = useState({ confirm: true, notify: true });
 
   const [showWalletModal, setShowWalletModal] = useState(false);
@@ -50,9 +51,7 @@ export default function App() {
   const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
 
   const addRichNotification = useCallback((type: RichNotification['type'], title: string, message: string) => {
-    // Only add if notify setting is enabled
     if (!settings.notify) return;
-    
     const id = Date.now().toString();
     setNotifications(prev => [...prev, { id, type, title, message }]);
   }, [settings.notify]);
@@ -75,10 +74,9 @@ export default function App() {
     addRichNotification('success', title, body);
   };
 
-  // Final execution of the order
-  const executeOrder = (side: OrderSide, type: OrderType, size: number, price: number, leverage: number, marginMode: MarginMode) => {
+  const executeOrder = (side: OrderSide, type: OrderType, size: number, price: number, leverage: number, mode: MarginMode) => {
     if (type === OrderType.MARKET) {
-      const newPos: Position = { id: Date.now().toString(), symbol: marketData.symbol, side, size, entryPrice: price, markPrice: price, leverage, margin: (size * price) / leverage, marginMode, pnl: 0, pnlPercent: 0, liquidationPrice: side === OrderSide.BUY ? price * 0.8 : price * 1.2 };
+      const newPos: Position = { id: Date.now().toString(), symbol: marketData.symbol, side, size, entryPrice: price, markPrice: price, leverage, margin: (size * price) / leverage, marginMode: mode, pnl: 0, pnlPercent: 0, liquidationPrice: side === OrderSide.BUY ? price * 0.8 : price * 1.2 };
       setPositions(prev => [newPos, ...prev]);
       
       const title = lang === 'en' ? 'Market Order Filled' : (lang === 'zh-CN' ? '市价单已完全成交' : '市價單已完全成交');
@@ -110,20 +108,18 @@ export default function App() {
     }
   };
 
-  const handleOrder = (side: OrderSide, type: OrderType, size: number, price: number, leverage: number, marginMode: MarginMode) => {
+  const handleOrder = (side: OrderSide, type: OrderType, size: number, price: number, leverage: number, mode: MarginMode) => {
     if (!isSigned) { setShowWalletModal(true); return; }
-    
     if (settings.confirm) {
-      setPendingOrder({ side, type, size, price, leverage, marginMode });
+      setPendingOrder({ side, type, size, price, leverage, marginMode: mode });
     } else {
-      executeOrder(side, type, size, price, leverage, marginMode);
+      executeOrder(side, type, size, price, leverage, mode);
     }
   };
 
   const handleClosePosition = (id: string, type: OrderType, closePrice?: number, closeAmount?: number) => {
     const pos = positions.find(p => p.id === id);
     if (!pos) return;
-
     setPositions(prev => prev.filter(x => x.id !== id));
     
     const title = lang === 'en' ? 'Position Closed' : (lang === 'zh-CN' ? '仓位已平仓' : '倉位已平倉');
@@ -148,28 +144,6 @@ export default function App() {
      };
      setAssetHistory(prev => [newRecord, ...prev]);
      setAssetModal(m => ({ ...m, isOpen: false }));
-
-     if (type === 'deposit') {
-       const title = lang === 'en' ? 'Deposit Success' : (lang === 'zh-CN' ? '充值成功' : '充值成功');
-       const body = lang === 'en' 
-        ? `You have successfully deposited ${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC, please check.`
-        : `您已成功充值 ${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC，请查看`;
-       addRichNotification('success', title, body);
-     } else {
-       const title = lang === 'en' ? 'Withdrawal Success' : (lang === 'zh-CN' ? '提现成功' : '提現成功');
-       const body = lang === 'en'
-        ? `You have successfully withdrawn ${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC to 0x4b...5591 (Arbitrum), estimated arrival in 1 minute.`
-        : `您已成功提现 ${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC 至 0x4b...5591 (Arbitrum)，预计 1 分钟到账。`;
-       addRichNotification('success', title, body);
-     }
-  };
-
-  const simulateLiquidation = () => {
-    const title = lang === 'en' ? 'Position Liquidated' : (lang === 'zh-CN' ? '仓位已强平' : '倉位已強平');
-    const body = lang === 'en'
-      ? `Your ${marketData.symbol} Long position triggered liquidation at $2,800. $428 Liquidation fee deducted.`
-      : `您的 ${marketData.symbol} 多头仓位已触发强平，强平价格 $2,800，已扣除 $428 强平罚金。`;
-    addRichNotification('liquidation', title, body);
   };
 
   return (
@@ -187,9 +161,7 @@ export default function App() {
       <div className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 px-4 py-2 flex items-center shrink-0 z-40 border-b border-amber-200 dark:border-amber-900/50">
         <Volume2 size={16} className="mr-3 shrink-0 text-amber-500 dark:text-amber-400" />
         <p className="text-sm font-semibold tracking-wide">
-          {lang === 'en' 
-            ? 'Predict gold trends · Seize the next market movement, next-gen gold prediction market >>'
-            : (lang === 'zh-CN' ? '预测金价走势 · 抢占下一个黄金行情，新一代黄金预测市场>>' : '預測金價走勢 · 搶佔下一個黃金行情，新一代黃金預測市場>>')}
+          {lang === 'en' ? 'Predict gold trends · Seize the next market movement >>' : '预测金价走势 · 抢占下一个黄金行情>>'}
         </p>
       </div>
 
@@ -199,12 +171,6 @@ export default function App() {
           <div className="flex-[1.8] flex border-b border-gray-200 dark:border-dark-border">
             <div className="flex-1 relative border-r border-gray-200 dark:border-dark-border">
               <CandleChart lang={lang} currentMarket={marketData} />
-              <button 
-                onClick={simulateLiquidation}
-                className="absolute bottom-4 left-4 bg-rose-600/20 hover:bg-rose-600/40 text-rose-500 text-[10px] px-2 py-1 rounded border border-rose-500/30 font-bold transition-all z-20"
-              >
-                Simulate Liq.
-              </button>
             </div>
             <div className="w-[280px] hidden lg:block bg-white dark:bg-dark-card shrink-0">
               <OrderBook lang={lang} lastPrice={marketData.lastPrice} onPriceClick={(p) => setSelectedPrice(p.toFixed(2))} />
@@ -218,6 +184,7 @@ export default function App() {
                onEditMargin={(pos, type) => setMarginManage({ isOpen: true, type, pos })}
                onCloseAll={() => setPositions([])}
                onCancelAll={() => setOrders([])}
+               lastPrice={marketData.lastPrice}
              />
           </div>
         </div>
@@ -233,9 +200,13 @@ export default function App() {
               availableBalance={accountInfo.marginBalance} 
               currentSymbol={marketData.symbol} 
               selectedPrice={selectedPrice}
+              marginMode={marginMode}
+              setMarginMode={setMarginMode}
             />
           </div>
-          <div className="shrink-0 border-t border-gray-200 dark:border-dark-border"><AccountInfo lang={lang} info={accountInfo} /></div>
+          <div className="shrink-0 border-t border-gray-200 dark:border-dark-border">
+            <AccountInfo lang={lang} info={accountInfo} positions={positions} currentMarginMode={marginMode} />
+          </div>
         </div>
       </main>
 
@@ -245,25 +216,15 @@ export default function App() {
       <SignatureModal isOpen={showSignModal} onClose={() => setShowSignModal(false)} lang={lang} onSign={handleSign} />
       
       <SettingsModal 
-        isOpen={showSettingsModal} 
-        onClose={() => setShowSettingsModal(false)} 
-        lang={lang} 
-        isEmailBound={isEmailBound} 
-        onBindClick={() => setShowEmailModal(true)}
-        settings={settings}
-        onSettingsChange={setSettings}
+        isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} lang={lang} isEmailBound={isEmailBound} onBindClick={() => setShowEmailModal(true)}
+        settings={settings} onSettingsChange={setSettings}
       />
 
       <EmailModal isOpen={showEmailModal} onClose={() => setShowEmailModal(false)} lang={lang} onBind={() => { setIsEmailBound(true); setShowEmailModal(false); }} />
 
       <AssetModal 
-        isOpen={assetModal.isOpen} 
-        onClose={() => setAssetModal(prev => ({ ...prev, isOpen: false }))} 
-        lang={lang} 
-        type={assetModal.type} 
-        maxAmount={1000.00} 
-        onConfirm={(v) => handleAssetConfirm(assetModal.type, v)} 
-        theme={theme}
+        isOpen={assetModal.isOpen} onClose={() => setAssetModal(prev => ({ ...prev, isOpen: false }))} lang={lang} type={assetModal.type} 
+        maxAmount={1000.00} onConfirm={(v) => handleAssetConfirm(assetModal.type, v)} theme={theme}
       />
       
       {marginManage.isOpen && marginManage.pos && (
@@ -281,18 +242,10 @@ export default function App() {
 
       {pendingOrder && (
         <OrderConfirmModal 
-          isOpen={true}
-          onClose={() => setPendingOrder(null)}
-          lang={lang}
-          theme={theme}
-          orderData={{
-            ...pendingOrder,
-            symbol: marketData.symbol
-          }}
+          isOpen={true} onClose={() => setPendingOrder(null)} lang={lang} theme={theme}
+          orderData={{ ...pendingOrder, symbol: marketData.symbol }}
           onConfirm={(dontShowAgain) => {
-            if (dontShowAgain) {
-              setSettings(s => ({ ...s, confirm: false }));
-            }
+            if (dontShowAgain) setSettings(s => ({ ...s, confirm: false }));
             executeOrder(pendingOrder.side, pendingOrder.type, pendingOrder.size, pendingOrder.price, pendingOrder.leverage, pendingOrder.marginMode);
             setPendingOrder(null);
           }}

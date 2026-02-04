@@ -16,6 +16,7 @@ interface PositionTableProps {
   onEditMargin: (position: Position, type: 'add' | 'extract') => void;
   onCloseAll: () => void;
   onCancelAll: () => void;
+  lastPrice: number;
 }
 
 const ThWithTooltip: React.FC<{ label: string; explanation?: string; align?: 'left' | 'right' }> = ({ label, explanation, align = 'left' }) => {
@@ -42,7 +43,7 @@ const ThWithTooltip: React.FC<{ label: string; explanation?: string; align?: 'le
   );
 };
 
-export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders, assetHistory, lang, theme, onClosePosition, onCancelOrder, onEditMargin, onCloseAll, onCancelAll }) => {
+export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders, assetHistory, lang, theme, onClosePosition, onCancelOrder, onEditMargin, onCloseAll, onCancelAll, lastPrice }) => {
   const t = TRANSLATIONS[lang];
   const [activeTab, setActiveTab] = useState<'positions' | 'openOrders' | 'orderHistory' | 'tradeHistory' | 'assetsHistory' | 'fundingHistory'>('positions');
   const [closingPos, setClosingPos] = useState<Position | null>(null);
@@ -205,7 +206,7 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
             <thead className="sticky top-0 bg-white dark:bg-dark-card z-20 shadow-sm border-b border-gray-200 dark:border-slate-800">
               <tr className="text-gray-500 uppercase bg-gray-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
                 <th className="py-2 px-4 font-semibold">{t.symbol}</th>
-                <ThWithTooltip label={t.nominalValue} explanation={t.explanations.nominalValue} />
+                <ThWithTooltip label={t.positionValue} explanation={t.explanations.positionValue} />
                 <ThWithTooltip label={t.entryPrice} explanation={t.explanations.entryPrice} />
                 <ThWithTooltip label={t.markPrice} explanation={t.explanations.markPrice} />
                 <ThWithTooltip label={t.liqPrice} explanation={t.explanations.liqPrice} />
@@ -229,7 +230,7 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
                   <td className="py-3 px-4">
                     <div className="flex flex-col font-mono">
                       <span className="dark:text-white">{pos.size.toFixed(4)} XAU</span>
-                      <span className="text-[10px] text-gray-500">{(pos.size * pos.markPrice).toFixed(2)} USDC</span>
+                      <span className="text-[10px] text-gray-500">{(pos.size * lastPrice).toFixed(2)} USDC</span>
                     </div>
                   </td>
                   <td className="py-3 px-4 font-mono dark:text-white">{pos.entryPrice.toFixed(2)}</td>

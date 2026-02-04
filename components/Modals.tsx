@@ -636,8 +636,6 @@ export const MarginManageModal: React.FC<{ isOpen: boolean; onClose: () => void;
   
   // Dynamic comparison calculations
   const notional = pos.size * pos.markPrice;
-  const oldLeverage = notional / pos.margin;
-  const newLeverage = newMargin > 0 ? notional / newMargin : oldLeverage;
   
   const oldLiq = pos.liquidationPrice;
   const liqDiff = (oldLiq * (numAmount / pos.margin)) * (isAdd ? -1 : 1);
@@ -692,12 +690,6 @@ export const MarginManageModal: React.FC<{ isOpen: boolean; onClose: () => void;
                  <span className="text-gray-500">{t.liqPrice}</span>
                  <div className="flex items-center space-x-3 font-mono font-bold dark:text-white">
                     <span>{pos.liquidationPrice.toFixed(2)}</span><ArrowRightIcon size={12} className="text-[#10B981]" /><span>{newLiq.toFixed(2)}</span>
-                 </div>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                 <span className="text-gray-500">{t.leverage}</span>
-                 <div className="flex items-center space-x-3 font-mono font-bold dark:text-white">
-                    <span>{oldLeverage.toFixed(2)}x</span><ArrowRightIcon size={12} className="text-[#10B981]" /><span>{newLeverage.toFixed(2)}x</span>
                  </div>
               </div>
               <div className="flex justify-between items-center text-xs">

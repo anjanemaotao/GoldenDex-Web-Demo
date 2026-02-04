@@ -14,6 +14,8 @@ interface TradeFormProps {
   availableBalance: number;
   currentSymbol: string;
   selectedPrice?: string | null;
+  marginMode: MarginMode;
+  setMarginMode: (m: MarginMode) => void;
 }
 
 export const CustomSlider: React.FC<{ value: number; onChange: (v: number) => void; theme: Theme }> = ({ value, onChange, theme }) => {
@@ -44,10 +46,9 @@ export const CustomSlider: React.FC<{ value: number; onChange: (v: number) => vo
   );
 };
 
-export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, onConnect, onOrder, lastPrice, availableBalance, currentSymbol, selectedPrice }) => {
+export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, onConnect, onOrder, lastPrice, availableBalance, currentSymbol, selectedPrice, marginMode, setMarginMode }) => {
   const t = TRANSLATIONS[lang];
   const [type, setType] = useState<OrderType>(OrderType.MARKET);
-  const [marginMode, setMarginMode] = useState<MarginMode>(MarginMode.CROSS);
   const [leverage, setLeverage] = useState<number>(20);
   const [amount, setAmount] = useState<string>('');
   const [price, setPrice] = useState<string>('');
@@ -55,11 +56,9 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
   const [sliderValue, setSliderValue] = useState(0);
   const [showLeveragePopup, setShowLeveragePopup] = useState(false);
   
-  // Validation states
   const [priceError, setPriceError] = useState(false);
   const [amountError, setAmountError] = useState(false);
 
-  // Sync external price click
   useEffect(() => {
     if (selectedPrice) {
       setPrice(selectedPrice);
@@ -92,28 +91,13 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
 
   const handleOrderClick = (side: OrderSide) => {
     if (!isConnected) { onConnect(); return; }
-    
     let hasErr = false;
-    
-    // Validate Amount for all modes
-    if (!amount || parseFloat(amount) <= 0) {
-      setAmountError(true);
-      hasErr = true;
-    }
-    
-    // Validate Price only for Limit mode
-    if (type === OrderType.LIMIT && (!price || parseFloat(price) <= 0)) {
-      setPriceError(true);
-      hasErr = true;
-    }
-
+    if (!amount || parseFloat(amount) <= 0) { setAmountError(true); hasErr = true; }
+    if (type === OrderType.LIMIT && (!price || parseFloat(price) <= 0)) { setPriceError(true); hasErr = true; }
     if (hasErr) return;
-
     onOrder(side, type, xauAmount, effectivePrice, leverage, marginMode);
     setAmount('');
     setSliderValue(0);
-    setPriceError(false);
-    setAmountError(false);
   };
 
   const InfoRow = ({ label, value, color }: { label: string, value: string, color?: string }) => (
@@ -151,10 +135,7 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
         <input 
           type={type === OrderType.LIMIT ? "number" : "text"} 
           value={type === OrderType.LIMIT ? price : ""} 
-          onChange={(e) => {
-            setPrice(e.target.value);
-            setPriceError(false);
-          }} 
+          onChange={(e) => { setPrice(e.target.value); setPriceError(false); }} 
           disabled={type === OrderType.MARKET} 
           placeholder={type === OrderType.MARKET ? `${t.market} ${t.price}` : lastPrice.toFixed(2)} 
           className={`w-full bg-transparent border rounded p-2.5 text-sm font-mono outline-none dark:text-white transition-all ${priceError ? 'border-red-500 ring-1 ring-red-500/20 shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'border-gray-200 dark:border-slate-700'}`} 
@@ -170,17 +151,11 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
           <input 
             type="number" 
             value={amount} 
-            onChange={(e) => {
-              setAmount(e.target.value);
-              setAmountError(false);
-            }} 
+            onChange={(e) => { setAmount(e.target.value); setAmountError(false); }} 
             className={`w-full bg-transparent border rounded p-2.5 pr-24 text-sm font-bold font-mono outline-none dark:text-white transition-all ${amountError ? 'border-red-500 ring-1 ring-red-500/20 shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'border-gray-300 dark:border-slate-600'}`} 
             placeholder="0.00" 
           />
-          <button 
-            onClick={() => setUnit(u => u === 'ASSET' ? 'USDC' : 'ASSET')}
-            className="absolute right-0 h-full flex items-center pr-2 group"
-          >
+          <button onClick={() => setUnit(u => u === 'ASSET' ? 'USDC' : 'ASSET')} className="absolute right-0 h-full flex items-center pr-2 group">
             <span className="bg-gray-200 dark:bg-slate-700 text-xs font-bold px-2 py-1 rounded flex items-center space-x-1 group-hover:bg-slate-600 transition-colors uppercase">
               <span>{unit === 'ASSET' ? assetSymbol : 'USDC'}</span>
               <Repeat size={10} className="text-gray-500" />
