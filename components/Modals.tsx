@@ -199,7 +199,8 @@ export const SettingsModal: React.FC<{
   onBindClick: () => void;
   settings: { confirm: boolean; notify: boolean; showTooltips?: boolean };
   onSettingsChange: (s: { confirm: boolean; notify: boolean; showTooltips?: boolean }) => void;
-}> = ({ isOpen, onClose, lang, isEmailBound, onBindClick, settings, onSettingsChange }) => {
+  onResetGuide?: () => void;
+}> = ({ isOpen, onClose, lang, isEmailBound, onBindClick, settings, onSettingsChange, onResetGuide }) => {
   const t = TRANSLATIONS[lang];
   const [posMode, setPosMode] = useState('hedge');
 
@@ -244,6 +245,17 @@ export const SettingsModal: React.FC<{
                 <Toggle active={!!settings.showTooltips} onToggle={() => onSettingsChange({ ...settings, showTooltips: !settings.showTooltips })} />
               </div>
             </div>
+            {onResetGuide && (
+              <div className="flex items-center justify-between border-t border-gray-100 dark:border-slate-800/60 pt-4">
+                <span className="text-sm font-medium dark:text-white">{lang === 'en' ? 'Newbie Onboarding' : '新手操作引导'}</span>
+                <button 
+                  onClick={onResetGuide}
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-xs font-bold rounded-lg text-[#DCA85E] hover:bg-[#DCA85E]/10 transition-colors"
+                >
+                  {lang === 'en' ? 'Restart Tour' : '重新开始'}
+                </button>
+              </div>
+            )}
          </div>
          <button onClick={onClose} className="w-full py-3 bg-[#DCA85E] text-slate-900 font-bold rounded-lg shadow-lg hover:bg-[#c99750] transition">{t.confirm}</button>
       </div>

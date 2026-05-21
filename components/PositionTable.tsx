@@ -58,6 +58,13 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
     setAllTrades(MOCK_TRADE_HISTORY);
   }, []);
 
+  // Force active tab to "positions" during onboarding to avoid missing elements
+  useEffect(() => {
+    if (positions.some(pos => pos.id === 'mock_onboarding_id')) {
+      setActiveTab('positions');
+    }
+  }, [positions]);
+
   const getTabLabel = (tabId: string) => {
     const label = (t as any)[tabId] || tabId;
     if (tabId === 'positions') return `${label}(${positions.length})`;
@@ -246,7 +253,10 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
                       <div className="flex items-center space-x-2">
                         <span>{pos.margin.toFixed(2)}</span>
                         {pos.marginMode === MarginMode.ISOLATED && (
-                          <div className="flex items-center space-x-1">
+                          <div 
+                            id={pos.id === 'mock_onboarding_id' ? 'guide-margin-adjust' : undefined}
+                            className="flex items-center space-x-1"
+                          >
                             <Tooltip content={(t.explanations as any).btnAddMargin} position="top">
                               <button onClick={() => onEditMargin(pos, 'add')} className="text-teal-500 hover:text-teal-400 flex items-center justify-center"><PlusCircle size={14} /></button>
                             </Tooltip>
@@ -265,7 +275,13 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
                   </td>
                   <td className="py-3 px-4 text-right">
                     <Tooltip content={(t.explanations as any).btnMarketLimitClose} position="left">
-                      <button onClick={() => setClosingPos(pos)} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-brand-500 dark:text-white rounded-md font-bold transition-all shadow-sm">{t.marketLimitClose}</button>
+                      <button 
+                        id={pos.id === 'mock_onboarding_id' ? 'guide-close-button' : undefined}
+                        onClick={() => setClosingPos(pos)} 
+                        className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-brand-500 dark:text-white rounded-md font-bold transition-all shadow-sm"
+                      >
+                        {t.marketLimitClose}
+                      </button>
                     </Tooltip>
                   </td>
                 </tr>

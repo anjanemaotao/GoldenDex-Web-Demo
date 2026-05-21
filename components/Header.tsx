@@ -90,6 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
         {isConnected && (
            <Tooltip content={(t.explanations as any).btnDeposit} position="bottom">
              <button 
+               id="guide-deposit-btn"
                onClick={onDeposit}
                className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-[#DCA85E] text-slate-900 font-bold text-sm shadow hover:bg-[#c99750] transition-colors"
              >

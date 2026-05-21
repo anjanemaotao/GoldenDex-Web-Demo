@@ -10,6 +10,7 @@ import { AccountInfo } from './components/AccountInfo';
 import { NotificationContainer, RichNotification } from './components/Notification';
 import { WalletModal, AssetModal, MarginManageModal, SignatureModal, SettingsModal, EmailModal, OrderConfirmModal } from './components/Modals';
 import { TooltipProvider } from './components/Tooltip';
+import { NewbieGuide } from './components/NewbieGuide';
 import { INITIAL_MARKET_DATA, MOCK_POSITIONS, TRANSLATIONS, INITIAL_ACCOUNT_INFO, MOCK_ASSETS_HISTORY } from './constants';
 import { Language, Theme, MarketData, Position, Order, OrderSide, OrderType, MarginMode, AccountInfo as AccountInfoType } from './types';
 import { Volume2 } from 'lucide-react';
@@ -30,6 +31,59 @@ export default function App() {
   // Global UI States
   const [marginMode, setMarginMode] = useState<MarginMode>(MarginMode.CROSS);
   const [settings, setSettings] = useState({ confirm: true, notify: true, showTooltips: true });
+
+  // Onboarding Tour States
+  const [isGuideActive, setIsGuideActive] = useState(false);
+  const [guideStep, setGuideStep] = useState(0);
+
+  // For testing: clear completed flag on mount so refreshing the page automatically triggers newbie guide.
+  React.useEffect(() => {
+    localStorage.removeItem('goldendex-onboarding-completed');
+  }, []);
+
+  // Trigger tour when signed in and not yet completed
+  React.useEffect(() => {
+    if (isSigned) {
+      const isCompleted = localStorage.getItem('goldendex-onboarding-completed') === 'true';
+      if (!isCompleted) {
+        setIsGuideActive(true);
+        setGuideStep(0);
+      }
+    } else {
+      setIsGuideActive(false);
+    }
+  }, [isSigned]);
+
+  const onboardingMockPos: Position = {
+    id: "mock_onboarding_id",
+    symbol: "XAUUSDC",
+    side: OrderSide.BUY,
+    size: 5.0,
+    entryPrice: 2420.50,
+    markPrice: 2435.80,
+    leverage: 20,
+    margin: 605.12,
+    marginMode: MarginMode.ISOLATED,
+    pnl: 76.50,
+    pnlPercent: 12.64,
+    liquidationPrice: 2315.00
+  };
+
+  const handleGuideComplete = () => {
+    setIsGuideActive(false);
+    localStorage.setItem('goldendex-onboarding-completed', 'true');
+    const title = lang === 'en' ? 'Onboarding Guide Completed!' : '新人引导已完成！';
+    const body = lang === 'en' ? 'Congratulations! You have completed the tour and learned how to open and close positions.' : '恭喜！您已成功掌握了整个衍生品交易的基础操作。';
+    addRichNotification('success', title, body);
+  };
+
+  const handleGuideSkip = () => {
+    setIsGuideActive(false);
+    localStorage.setItem('goldendex-onboarding-completed', 'true');
+    const title = lang === 'en' ? 'Onboarding Skipped' : '新人引导已跳过';
+    const body = lang === 'en' ? 'You can always restart this onboarding tour in Settings modal later!' : '您之后可以随时在设置窗口中，重新开始新手操作引导！';
+    addRichNotification('success', title, body);
+  };
 
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showSignModal, setShowSignModal] = useState(false);
@@ -119,6 +173,16 @@ export default function App() {
   };
 
   const handleClosePosition = (id: string, type: OrderType, closePrice?: number, closeAmount?: number) => {
+    if (id === 'mock_onboarding_id') {
+      setIsGuideActive(false);
+      localStorage.setItem('goldendex-onboarding-completed', 'true');
+      const title = lang === 'en' ? 'Position Closed & Settle Complete' : '仓位已平仓并结算完成';
+      const body = lang === 'en' 
+        ? 'Congratulations! You successfully executed a simulated position close. Onboarding complete!' 
+        : '恭喜！您成功模拟执行了一次快速平仓结算。这就完成了全部的新手入门向导！';
+      addRichNotification('success', title, body);
+      return;
+    }
     const pos = positions.find(p => p.id === id);
     if (!pos) return;
     setPositions(prev => prev.filter(x => x.id !== id));
@@ -178,9 +242,14 @@ export default function App() {
               <OrderBook lang={lang} lastPrice={marketData.lastPrice} onPriceClick={(p) => setSelectedPrice(p.toFixed(2))} />
             </div>
           </div>
-          <div className="flex-[2] min-h-[250px] flex flex-col overflow-hidden">
+           <div className="flex-[2] min-h-[250px] flex flex-col overflow-hidden">
              <PositionTable 
-               positions={positions} orders={orders} assetHistory={assetHistory} lang={lang} theme={theme}
+               positions={
+                 isGuideActive 
+                   ? [onboardingMockPos, ...positions.filter(p => p.id !== 'mock_onboarding_id')] 
+                   : positions
+               } 
+               orders={orders} assetHistory={assetHistory} lang={lang} theme={theme}
                onClosePosition={handleClosePosition}
                onCancelOrder={(id) => setOrders(o => o.filter(x => x.id !== id))}
                onEditMargin={(pos, type) => setMarginManage({ isOpen: true, type, pos })}
@@ -220,6 +289,11 @@ export default function App() {
       <SettingsModal 
         isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} lang={lang} isEmailBound={isEmailBound} onBindClick={() => setShowEmailModal(true)}
         settings={settings} onSettingsChange={setSettings}
+        onResetGuide={() => {
+          localStorage.removeItem('goldendex-onboarding-completed');
+          setGuideStep(0);
+          setIsGuideActive(true);
+        }}
       />
 
       <EmailModal isOpen={showEmailModal} onClose={() => setShowEmailModal(false)} lang={lang} onBind={() => { setIsEmailBound(true); setShowEmailModal(false); }} />
@@ -251,6 +325,15 @@ export default function App() {
             executeOrder(pendingOrder.side, pendingOrder.type, pendingOrder.size, pendingOrder.price, pendingOrder.leverage, pendingOrder.marginMode);
             setPendingOrder(null);
           }}
+        />
+      )}
+
+      {isGuideActive && (
+        <NewbieGuide
+          lang={lang}
+          onStepChange={setGuideStep}
+          onComplete={handleGuideComplete}
+          onSkip={handleGuideSkip}
         />
       )}
       </div>
