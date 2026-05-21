@@ -4,6 +4,7 @@ import { Language, WalletProvider, Theme, Position, OrderSide, OrderType, Margin
 import { TRANSLATIONS, INITIAL_ACCOUNT_INFO } from '../constants';
 import { X, Copy, ExternalLink, LogOut, Settings, Check, ArrowRightIcon, ShieldCheck, Mail, Loader2, Info, ChevronDown } from 'lucide-react';
 import { CustomSlider } from './TradeForm';
+import { Tooltip } from './Tooltip';
 
 // Token Icons for the selector
 const TokenIcons: Record<string, React.ReactNode> = {
@@ -106,8 +107,12 @@ export const AccountPopover: React.FC<{ onClose: () => void; lang: Language; onD
           <div className="text-xs text-gray-500 mb-1">{t.accountBalance}</div>
           <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white">4,392.23 <span className="text-sm font-normal text-gray-500">USDC</span></div>
           <div className="flex space-x-2 mt-4">
-             <button onClick={onDeposit} className="flex-1 bg-[#F59E0B] hover:bg-[#D97706] text-white font-bold py-2 rounded text-sm transition-all">{t.deposit}</button>
-             <button onClick={onWithdraw} className="flex-1 border border-[#F59E0B] text-[#F59E0B] hover:bg-[#F59E0B]/10 font-bold py-2 rounded text-sm transition-all">{t.withdraw}</button>
+             <Tooltip content={(t.explanations as any).btnDeposit} position="bottom" className="flex-1">
+                <button onClick={onDeposit} className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-white font-bold py-2 rounded text-sm transition-all">{t.deposit}</button>
+             </Tooltip>
+             <Tooltip content={(t.explanations as any).btnWithdraw} position="bottom" className="flex-1">
+                <button onClick={onWithdraw} className="w-full border border-[#F59E0B] text-[#F59E0B] hover:bg-[#F59E0B]/10 font-bold py-2 rounded text-sm transition-all">{t.withdraw}</button>
+             </Tooltip>
           </div>
        </div>
 
@@ -192,8 +197,8 @@ export const SettingsModal: React.FC<{
   lang: Language; 
   isEmailBound: boolean; 
   onBindClick: () => void;
-  settings: { confirm: boolean; notify: boolean };
-  onSettingsChange: (s: { confirm: boolean; notify: boolean }) => void;
+  settings: { confirm: boolean; notify: boolean; showTooltips?: boolean };
+  onSettingsChange: (s: { confirm: boolean; notify: boolean; showTooltips?: boolean }) => void;
 }> = ({ isOpen, onClose, lang, isEmailBound, onBindClick, settings, onSettingsChange }) => {
   const t = TRANSLATIONS[lang];
   const [posMode, setPosMode] = useState('hedge');
@@ -212,11 +217,13 @@ export const SettingsModal: React.FC<{
       <div className="space-y-6">
          <div className="flex items-center justify-between">
             <span className="text-sm font-medium dark:text-white">{t.posMode}</span>
+            <Tooltip content={(t.explanations as any).btnPosMode} position="bottom">
             <div className="flex bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 p-0.5 rounded-full w-24 relative cursor-pointer" onClick={() => setPosMode(p => p === 'oneWay' ? 'hedge' : 'oneWay')}>
                <div className={`absolute top-0.5 bottom-0.5 w-[44px] bg-brand-500 rounded-full transition-all ${posMode === 'hedge' ? 'left-[46px]' : 'left-0.5'}`} />
                <span className={`flex-1 text-[9px] font-black text-center z-10 py-1.5 transition ${posMode === 'oneWay' ? 'text-slate-900' : 'text-gray-500'}`}>{t.oneWay}</span>
                <span className={`flex-1 text-[9px] font-black text-center z-10 py-1.5 transition ${posMode === 'hedge' ? 'text-slate-900' : 'text-gray-500'}`}>{t.hedge}</span>
             </div>
+            </Tooltip>
          </div>
          <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -229,6 +236,12 @@ export const SettingsModal: React.FC<{
               <span className="text-sm font-medium dark:text-white">{t.popupNotify}</span>
               <div className="flex justify-end">
                 <Toggle active={settings.notify} onToggle={() => onSettingsChange({ ...settings, notify: !settings.notify })} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium dark:text-white">{t.operationHints}</span>
+              <div className="flex justify-end">
+                <Toggle active={!!settings.showTooltips} onToggle={() => onSettingsChange({ ...settings, showTooltips: !settings.showTooltips })} />
               </div>
             </div>
          </div>

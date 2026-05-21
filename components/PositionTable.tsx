@@ -4,6 +4,7 @@ import { Position, Order, Language, MarginMode, OrderType, Theme, OrderSide } fr
 import { TRANSLATIONS, INITIAL_MARKET_DATA, MOCK_FUNDING_RECORDS, MOCK_HISTORY_ORDERS, MOCK_TRADE_HISTORY } from '../constants';
 import { Edit3, Trash2, X, ChevronDown, Repeat, Filter, PlusCircle, MinusCircle, Info } from 'lucide-react';
 import { CustomSlider } from './TradeForm';
+import { Tooltip } from './Tooltip';
 
 interface PositionTableProps {
   positions: Position[];
@@ -182,20 +183,24 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
           </button>
         ))}
         {activeTab === 'positions' && positions.length > 0 && (
-          <button 
-            onClick={() => setShowCloseAllModal(true)}
-            className="ml-auto bg-trade-down/10 text-trade-down border border-trade-down/30 px-3 py-1 rounded text-xs font-bold hover:bg-trade-down hover:text-white transition"
-          >
-            {t.closeAll}
-          </button>
+          <Tooltip content={(t.explanations as any).btnCloseAll} position="bottom" className="ml-auto">
+            <button 
+              onClick={() => setShowCloseAllModal(true)}
+              className="bg-trade-down/10 text-trade-down border border-trade-down/30 px-3 py-1 rounded text-xs font-bold hover:bg-trade-down hover:text-white transition animate-pulse"
+            >
+              {t.closeAll}
+            </button>
+          </Tooltip>
         )}
         {activeTab === 'openOrders' && orders.length > 0 && (
-          <button 
-            onClick={() => onCancelAll()}
-            className="ml-auto bg-slate-100 dark:bg-slate-800 text-gray-500 px-3 py-1 rounded text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-          >
-            {t.cancelAll}
-          </button>
+          <Tooltip content={(t.explanations as any).btnCancelAll} position="bottom" className="ml-auto">
+            <button 
+              onClick={() => onCancelAll()}
+              className="bg-slate-100 dark:bg-slate-800 text-gray-500 px-3 py-1 rounded text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            >
+              {t.cancelAll}
+            </button>
+          </Tooltip>
         )}
       </div>
 
@@ -242,8 +247,12 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
                         <span>{pos.margin.toFixed(2)}</span>
                         {pos.marginMode === MarginMode.ISOLATED && (
                           <div className="flex items-center space-x-1">
-                            <button onClick={() => onEditMargin(pos, 'add')} className="text-teal-500 hover:text-teal-400"><PlusCircle size={14} /></button>
-                            <button onClick={() => onEditMargin(pos, 'extract')} className="text-rose-500 hover:text-rose-400"><MinusCircle size={14} /></button>
+                            <Tooltip content={(t.explanations as any).btnAddMargin} position="top">
+                              <button onClick={() => onEditMargin(pos, 'add')} className="text-teal-500 hover:text-teal-400 flex items-center justify-center"><PlusCircle size={14} /></button>
+                            </Tooltip>
+                            <Tooltip content={(t.explanations as any).btnExtractMargin} position="top">
+                              <button onClick={() => onEditMargin(pos, 'extract')} className="text-rose-500 hover:text-rose-400 flex items-center justify-center"><MinusCircle size={14} /></button>
+                            </Tooltip>
                           </div>
                         )}
                       </div>
@@ -255,7 +264,9 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
                     <div className="text-[10px] opacity-70">{pos.pnlPercent.toFixed(2)}%</div>
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <button onClick={() => setClosingPos(pos)} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-brand-500 dark:text-white rounded-md font-bold transition-all shadow-sm">{t.marketLimitClose}</button>
+                    <Tooltip content={(t.explanations as any).btnMarketLimitClose} position="left">
+                      <button onClick={() => setClosingPos(pos)} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-brand-500 dark:text-white rounded-md font-bold transition-all shadow-sm">{t.marketLimitClose}</button>
+                    </Tooltip>
                   </td>
                 </tr>
               ))}
@@ -295,7 +306,13 @@ export const PositionTable: React.FC<PositionTableProps> = ({ positions, orders,
                   <td className="py-3 px-4 font-mono dark:text-white">{o.amount.toFixed(4)}</td>
                   <td className="py-3 px-4 font-mono dark:text-white">{((o.filled / o.amount) * 100).toFixed(2)}%</td>
                   <td className="py-3 px-4 text-gray-500">{o.time}</td>
-                  <td className="py-3 px-4 text-right"><button onClick={() => onCancelOrder(o.id)} className="text-trade-down hover:underline font-bold">{t.cancelOrder}</button></td>
+                  <td className="py-3 px-4 text-right">
+                    <Tooltip content={(t.explanations as any).btnCancelOrder} position="left">
+                      <button onClick={() => onCancelOrder(o.id)} className="text-trade-down hover:underline font-bold">
+                        {t.cancelOrder}
+                      </button>
+                    </Tooltip>
+                  </td>
                 </tr>
               ))}
               {orders.length === 0 && <tr><td colSpan={8} className="py-10 text-center text-gray-400 italic">No open orders</td></tr>}

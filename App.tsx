@@ -9,6 +9,7 @@ import { PositionTable } from './components/PositionTable';
 import { AccountInfo } from './components/AccountInfo';
 import { NotificationContainer, RichNotification } from './components/Notification';
 import { WalletModal, AssetModal, MarginManageModal, SignatureModal, SettingsModal, EmailModal, OrderConfirmModal } from './components/Modals';
+import { TooltipProvider } from './components/Tooltip';
 import { INITIAL_MARKET_DATA, MOCK_POSITIONS, TRANSLATIONS, INITIAL_ACCOUNT_INFO, MOCK_ASSETS_HISTORY } from './constants';
 import { Language, Theme, MarketData, Position, Order, OrderSide, OrderType, MarginMode, AccountInfo as AccountInfoType } from './types';
 import { Volume2 } from 'lucide-react';
@@ -28,7 +29,7 @@ export default function App() {
 
   // Global UI States
   const [marginMode, setMarginMode] = useState<MarginMode>(MarginMode.CROSS);
-  const [settings, setSettings] = useState({ confirm: true, notify: true });
+  const [settings, setSettings] = useState({ confirm: true, notify: true, showTooltips: true });
 
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showSignModal, setShowSignModal] = useState(false);
@@ -147,7 +148,8 @@ export default function App() {
   };
 
   return (
-    <div className={`flex flex-col h-screen ${theme} bg-gray-50 dark:bg-dark-bg text-slate-900 dark:text-slate-200 font-sans overflow-hidden transition-colors`}>
+    <TooltipProvider showTooltips={settings.showTooltips}>
+      <div className={`flex flex-col h-screen ${theme} bg-gray-50 dark:bg-dark-bg text-slate-900 dark:text-slate-200 font-sans overflow-hidden transition-colors`}>
       <Header 
         lang={lang} setLang={setLang} theme={theme} setTheme={setTheme}
         isConnected={isSigned} 
@@ -251,6 +253,7 @@ export default function App() {
           }}
         />
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

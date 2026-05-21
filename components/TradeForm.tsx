@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Language, MarginMode, OrderType, OrderSide, Theme } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { Edit3, X, Repeat } from 'lucide-react';
+import { Tooltip } from './Tooltip';
 
 interface TradeFormProps {
   lang: Language;
@@ -117,17 +118,27 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
     <div className="flex flex-col h-full bg-white dark:bg-dark-card border-l border-gray-200 dark:border-dark-border p-4 relative">
       <div className="flex justify-between items-center mb-4">
         <div className="flex bg-gray-100 dark:bg-slate-800 rounded border border-gray-200 dark:border-slate-700 p-0.5">
-          <button onClick={() => setMarginMode(MarginMode.CROSS)} className={`px-3 py-1.5 text-xs font-bold rounded transition-all ${marginMode === MarginMode.CROSS ? 'bg-slate-500/30 text-brand-500' : 'text-gray-500'}`}>{t.cross}</button>
-          <button onClick={() => setMarginMode(MarginMode.ISOLATED)} className={`px-3 py-1.5 text-xs font-bold rounded transition-all ${marginMode === MarginMode.ISOLATED ? 'bg-slate-500/30 text-brand-500' : 'text-gray-500'}`}>{t.isolated}</button>
+          <Tooltip content={(t.explanations as any).btnCross} position="bottom">
+             <button onClick={() => setMarginMode(MarginMode.CROSS)} className={`px-3 py-1.5 text-xs font-bold rounded transition-all ${marginMode === MarginMode.CROSS ? 'bg-slate-500/30 text-brand-500' : 'text-gray-500'}`}>{t.cross}</button>
+          </Tooltip>
+          <Tooltip content={(t.explanations as any).btnIsolated} position="bottom">
+             <button onClick={() => setMarginMode(MarginMode.ISOLATED)} className={`px-3 py-1.5 text-xs font-bold rounded transition-all ${marginMode === MarginMode.ISOLATED ? 'bg-slate-500/30 text-brand-500' : 'text-gray-500'}`}>{t.isolated}</button>
+          </Tooltip>
         </div>
-        <button onClick={() => setShowLeveragePopup(true)} className="flex items-center space-x-1 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 px-3 py-1.5 rounded text-xs font-bold text-slate-900 dark:text-white border border-gray-200 dark:border-slate-700">
-          <span>{leverage}x</span><Edit3 size={12} className="text-gray-500" />
-        </button>
+        <Tooltip content={(t.explanations as any).btnLeverage} position="bottom">
+           <button onClick={() => setShowLeveragePopup(true)} className="flex items-center space-x-1 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 px-3 py-1.5 rounded text-xs font-bold text-slate-900 dark:text-white border border-gray-200 dark:border-slate-700">
+             <span>{leverage}x</span><Edit3 size={12} className="text-gray-500" />
+           </button>
+        </Tooltip>
       </div>
 
       <div className="flex bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded p-0.5 mb-4">
-        <button onClick={() => {setType(OrderType.MARKET); setPriceError(false);}} className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${type === OrderType.MARKET ? 'bg-slate-500 text-white shadow' : 'text-gray-500'}`}>{t.market}</button>
-        <button onClick={() => setType(OrderType.LIMIT)} className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${type === OrderType.LIMIT ? 'bg-slate-500 text-white shadow' : 'text-gray-500'}`}>{t.limit}</button>
+        <Tooltip content={(t.explanations as any).btnMarketOrder} position="bottom" className="flex-1">
+           <button onClick={() => {setType(OrderType.MARKET); setPriceError(false);}} className={`w-full py-1.5 text-xs font-bold rounded transition-all ${type === OrderType.MARKET ? 'bg-slate-500 text-white shadow' : 'text-gray-500'}`}>{t.market}</button>
+        </Tooltip>
+        <Tooltip content={(t.explanations as any).btnLimitOrder} position="bottom" className="flex-1">
+           <button onClick={() => setType(OrderType.LIMIT)} className={`w-full py-1.5 text-xs font-bold rounded transition-all ${type === OrderType.LIMIT ? 'bg-slate-500 text-white shadow' : 'text-gray-500'}`}>{t.limit}</button>
+        </Tooltip>
       </div>
 
       <div className="mb-3">
@@ -156,10 +167,12 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
             placeholder="0.00" 
           />
           <button onClick={() => setUnit(u => u === 'ASSET' ? 'USDC' : 'ASSET')} className="absolute right-0 h-full flex items-center pr-2 group">
-            <span className="bg-gray-200 dark:bg-slate-700 text-xs font-bold px-2 py-1 rounded flex items-center space-x-1 group-hover:bg-slate-600 transition-colors uppercase">
-              <span>{unit === 'ASSET' ? assetSymbol : 'USDC'}</span>
-              <Repeat size={10} className="text-gray-500" />
-            </span>
+            <Tooltip content={(t.explanations as any).btnUnitSwitch} position="top">
+              <span className="bg-gray-200 dark:bg-slate-700 text-xs font-bold px-2 py-1 rounded flex items-center space-x-1 group-hover:bg-slate-600 transition-colors uppercase">
+                <span>{unit === 'ASSET' ? assetSymbol : 'USDC'}</span>
+                <Repeat size={10} className="text-gray-500" />
+              </span>
+            </Tooltip>
           </button>
         </div>
       </div>
@@ -170,7 +183,9 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="flex flex-col">
-          <button onClick={() => handleOrderClick(OrderSide.BUY)} className="py-4 bg-trade-up hover:bg-green-600 text-white font-bold rounded-lg shadow-lg shadow-green-900/20 mb-3">{t.buyLong}</button>
+          <Tooltip content={(t.explanations as any).btnBuyLong} position="top" className="w-full mb-3">
+             <button onClick={() => handleOrderClick(OrderSide.BUY)} className="w-full py-4 bg-trade-up hover:bg-green-600 text-white font-bold rounded-lg shadow-lg shadow-green-900/20">{t.buyLong}</button>
+          </Tooltip>
           <div className="px-1 space-y-1">
              <InfoRow label={t.liqPrice} value={calcLiqPrice(OrderSide.BUY)} color="text-trade-up" />
              <InfoRow label={t.margin} value={marginReq.toFixed(2)} color="text-trade-up" />
@@ -179,7 +194,9 @@ export const TradeForm: React.FC<TradeFormProps> = ({ lang, theme, isConnected, 
           </div>
         </div>
         <div className="flex flex-col">
-          <button onClick={() => handleOrderClick(OrderSide.SELL)} className="py-4 bg-trade-down hover:bg-red-600 text-white font-bold rounded-lg shadow-lg shadow-red-900/20 mb-3">{t.sellShort}</button>
+          <Tooltip content={(t.explanations as any).btnSellShort} position="top" className="w-full mb-3">
+             <button onClick={() => handleOrderClick(OrderSide.SELL)} className="w-full py-4 bg-trade-down hover:bg-red-600 text-white font-bold rounded-lg shadow-lg shadow-red-900/20">{t.sellShort}</button>
+          </Tooltip>
           <div className="px-1 space-y-1">
              <InfoRow label={t.liqPrice} value={calcLiqPrice(OrderSide.SELL)} color="text-trade-down" />
              <InfoRow label={t.margin} value={marginReq.toFixed(2)} color="text-trade-down" />

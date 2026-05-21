@@ -4,6 +4,7 @@ import { Language, Theme } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { Moon, Sun, Globe, Wallet, Settings, ChevronDown, Plus } from 'lucide-react';
 import { AccountPopover } from './Modals';
+import { Tooltip } from './Tooltip';
 
 interface HeaderProps {
   lang: Language;
@@ -87,13 +88,15 @@ export const Header: React.FC<HeaderProps> = ({
 
       <div className="flex items-center space-x-4">
         {isConnected && (
-           <button 
-             onClick={onDeposit}
-             className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-[#DCA85E] text-slate-900 font-bold text-sm shadow hover:bg-[#c99750] transition-colors"
-           >
-             <Plus size={16} />
-             <span>{t.deposit}</span>
-           </button>
+           <Tooltip content={(t.explanations as any).btnDeposit} position="bottom">
+             <button 
+               onClick={onDeposit}
+               className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-[#DCA85E] text-slate-900 font-bold text-sm shadow hover:bg-[#c99750] transition-colors"
+             >
+               <Plus size={16} />
+               <span>{t.deposit}</span>
+             </button>
+           </Tooltip>
         )}
 
         {isConnected ? (
